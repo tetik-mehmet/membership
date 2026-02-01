@@ -1,16 +1,15 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth';
+import DashboardShell from './DashboardShell';
 
-export default async function HomePage() {
+export default async function DashboardLayout({ children }) {
   const cookieStore = await cookies();
   const token = cookieStore.get('auth-token')?.value;
 
-  // If authenticated, redirect to dashboard
-  if (token && verifyToken(token)) {
-    redirect('/dashboard');
+  if (!token || !verifyToken(token)) {
+    redirect('/login');
   }
 
-  // Otherwise, redirect to login
-  redirect('/login');
+  return <DashboardShell>{children}</DashboardShell>;
 }
