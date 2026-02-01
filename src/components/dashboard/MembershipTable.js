@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Ban, Pencil, Clock } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Ban, Pencil, Clock, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,9 +26,41 @@ export default function MembershipTable({ initialMemberships, members, packages 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const filteredMemberships = memberships.filter((membership) => {
-    if (activeTab === 'all') return true;
+    if (activeTab === 'all') return membership.status !== 'expired'; // Süresi dolmuş hariç
     return membership.status === activeTab;
   });
+
+  // Paketlere göre grupla (paket sırasına göre)
+  const groupedByPackage = useMemo(() => {
+    const groups = new Map();
+    const pkgOrder = packages?.map((p) => p._id?.toString()) || [];
+
+    filteredMemberships.forEach((m) => {
+      const pkgId = m.packageId?._id?.toString() || m.packageId?.toString() || '_unknown';
+      if (!groups.has(pkgId)) {
+        const pkg = m.packageId;
+        groups.set(pkgId, {
+          id: pkgId,
+          name: pkg?.name || 'Paket bilinmiyor',
+          price: pkg?.price,
+          durationInDays: pkg?.durationInDays,
+          memberships: [],
+        });
+      }
+      groups.get(pkgId).memberships.push(m);
+    });
+
+    // Paket sırasına göre sırala, bilinmeyen en sonda
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => {
+        if (a === '_unknown') return 1;
+        if (b === '_unknown') return -1;
+        const idxA = pkgOrder.indexOf(a);
+        const idxB = pkgOrder.indexOf(b);
+        return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+      })
+      .map(([, group]) => group);
+  }, [filteredMemberships, packages]);
 
   const handleCancel = async (membershipId) => {
     if (!confirm('Bu üyeliği iptal etmek istediğinizden emin misiniz?')) {
@@ -122,7 +154,7 @@ export default function MembershipTable({ initialMemberships, members, packages 
         onSuccess={handleEditSuccess}
       />
       <TabsList>
-        <TabsTrigger value="all">Tümü ({memberships.length})</TabsTrigger>
+        <TabsTrigger value="all">Tümü ({memberships.filter((m) => m.status !== 'expired').length})</TabsTrigger>
         <TabsTrigger value="active">
           Aktif ({memberships.filter((m) => m.status === 'active').length})
         </TabsTrigger>
@@ -137,85 +169,97 @@ export default function MembershipTable({ initialMemberships, members, packages 
             <p className="text-muted-foreground">Üyelik bulunamadı</p>
           </div>
         ) : (
-          <div className="border rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Üye</TableHead>
-                    <TableHead>Paket</TableHead>
-                    <TableHead>Başlangıç</TableHead>
-                    <TableHead>Bitiş</TableHead>
-                    <TableHead>Durum</TableHead>
-                    <TableHead className="text-right">İşlemler</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredMemberships.map((membership) => (
-                    <TableRow key={membership._id}>
-                      <TableCell className="font-medium">
-                        {membership.memberId?.firstName} {membership.memberId?.lastName}
-                      </TableCell>
-                      <TableCell>
-                        {membership.packageId?.name}
-                        <div className="text-sm text-muted-foreground">
-                          {membership.packageId?.price.toLocaleString('tr-TR')} ₺
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(membership.startDate), 'dd MMM yyyy', { locale: tr })}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span>{format(new Date(membership.endDate), 'dd MMM yyyy', { locale: tr })}</span>
-                          {isExpiringSoon(membership) && (
-                            <span
-                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200/60 dark:border-amber-700/50"
-                              title={`${getDaysRemaining(membership.endDate)} gün kaldı`}
-                            >
-                              <Clock className="h-3.5 w-3.5 shrink-0" />
-                              {getDaysRemaining(membership.endDate) === 0
-                                ? 'Bugün bitiyor'
-                                : getDaysRemaining(membership.endDate) === 1
-                                  ? '1 gün kaldı'
-                                  : `${getDaysRemaining(membership.endDate)} gün kaldı`}
-                            </span>
-                          )}
-                          {membership.status === 'active' && isExpired(membership.endDate) && (
-                            <span className="text-xs text-red-600 dark:text-red-400 font-medium">Süre doldu</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(membership.status)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditClick(membership)}
-                            disabled={loading}
-                            title="Düzenle"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          {membership.status === 'active' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCancel(membership._id)}
-                              disabled={loading}
-                              title="İptal Et"
-                            >
-                              <Ban className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+          <div className="space-y-6">
+            {groupedByPackage.map((group) => (
+              <div key={group.id} className="border rounded-lg overflow-hidden">
+                <div className="px-4 py-3 bg-muted/50 dark:bg-muted/20 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-5 w-5 text-primary shrink-0" />
+                    <h3 className="font-semibold text-foreground">{group.name}</h3>
+                    {group.price != null && (
+                      <span className="text-sm text-muted-foreground">
+                        {group.price.toLocaleString('tr-TR')} ₺
+                        {group.durationInDays ? ` / ${group.durationInDays} gün` : ''}
+                      </span>
+                    )}
+                  </div>
+                  <Badge variant="secondary" className="w-fit">
+                    {group.memberships.length} üyelik
+                  </Badge>
+                </div>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Üye</TableHead>
+                        <TableHead className="hidden sm:table-cell">Başlangıç</TableHead>
+                        <TableHead>Bitiş</TableHead>
+                        <TableHead>Durum</TableHead>
+                        <TableHead className="text-right">İşlemler</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {group.memberships.map((membership) => (
+                        <TableRow key={membership._id}>
+                          <TableCell className="font-medium">
+                            {membership.memberId?.firstName} {membership.memberId?.lastName}
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell">
+                            {format(new Date(membership.startDate), 'dd MMM yyyy', { locale: tr })}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span>{format(new Date(membership.endDate), 'dd MMM yyyy', { locale: tr })}</span>
+                              {isExpiringSoon(membership) && (
+                                <span
+                                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200/60 dark:border-amber-700/50"
+                                  title={`${getDaysRemaining(membership.endDate)} gün kaldı`}
+                                >
+                                  <Clock className="h-3.5 w-3.5 shrink-0" />
+                                  {getDaysRemaining(membership.endDate) === 0
+                                    ? 'Bugün bitiyor'
+                                    : getDaysRemaining(membership.endDate) === 1
+                                      ? '1 gün kaldı'
+                                      : `${getDaysRemaining(membership.endDate)} gün kaldı`}
+                                </span>
+                              )}
+                              {membership.status === 'active' && isExpired(membership.endDate) && (
+                                <span className="text-xs text-red-600 dark:text-red-400 font-medium">Süre doldu</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>{getStatusBadge(membership.status)}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditClick(membership)}
+                                disabled={loading}
+                                title="Düzenle"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              {membership.status === 'active' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCancel(membership._id)}
+                                  disabled={loading}
+                                  title="İptal Et"
+                                >
+                                  <Ban className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </TabsContent>
