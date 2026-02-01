@@ -1,33 +1,110 @@
-import { Users, CreditCard, AlertCircle, Package } from "lucide-react";
+import { cookies } from "next/headers";
+import { Users, CreditCard, AlertCircle, Package, Banknote, TrendingUp, Receipt, PiggyBank } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import connectDB from "@/lib/db";
 import Member from "@/models/Member";
 import MembershipPackage from "@/models/MembershipPackage";
 import MemberMembership from "@/models/MemberMembership";
+import EarningsRecord from "@/models/EarningsRecord";
+import Expense from "@/models/Expense";
+import { verifyToken } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+
+async function getUsername() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("auth-token")?.value;
+  const decoded = token ? verifyToken(token) : null;
+  return decoded?.username || "admin";
+}
+
+function getStartOfMonth() {
+  const d = new Date();
+  d.setDate(1);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
 
 async function getDashboardStats() {
   await connectDB();
 
-  const [totalMembers, totalPackages, activeMemberships, expiredMemberships] =
-    await Promise.all([
-      Member.countDocuments(),
-      MembershipPackage.countDocuments({ isActive: true }),
-      MemberMembership.countDocuments({ status: "active" }),
-      MemberMembership.countDocuments({ status: "expired" }),
+  const startOfMonth = getStartOfMonth();
+
+  // Kazançlar silinmeyen EarningsRecord'dan; üye silindiğinde düşmez
+  const earningsCount = await EarningsRecord.countDocuments();
+  const membershipCount = await MemberMembership.countDocuments();
+
+  // İlk kez: mevcut üyeliklerden tek seferlik backfill (eski kazançlar görünsün)
+  if (earningsCount === 0 && membershipCount > 0) {
+    const membershipsWithPrice = await MemberMembership.aggregate([
+      {
+        $lookup: {
+          from: "membershippackages",
+          localField: "packageId",
+          foreignField: "_id",
+          as: "pkg",
+        },
+      },
+      { $unwind: "$pkg" },
+      { $project: { amount: "$pkg.price", date: "$createdAt" } },
     ]);
+    if (membershipsWithPrice.length > 0) {
+      await EarningsRecord.insertMany(
+        membershipsWithPrice.map(({ amount, date }) => ({ amount, date }))
+      );
+    }
+  }
+
+  const [
+    totalMembers,
+    totalPackages,
+    activeMemberships,
+    expiredMemberships,
+    totalEarningsResult,
+    monthlyEarningsResult,
+    monthlyExpensesResult,
+  ] = await Promise.all([
+    Member.countDocuments(),
+    MembershipPackage.countDocuments({ isActive: true }),
+    MemberMembership.countDocuments({ status: "active" }),
+    MemberMembership.countDocuments({ status: "expired" }),
+    EarningsRecord.aggregate([
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]),
+    EarningsRecord.aggregate([
+      { $match: { date: { $gte: startOfMonth } } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]),
+    Expense.aggregate([
+      { $match: { date: { $gte: startOfMonth } } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]),
+  ]);
+
+  const totalEarnings = totalEarningsResult[0]?.total ?? 0;
+  const monthlyEarnings = monthlyEarningsResult[0]?.total ?? 0;
+  const monthlyExpenses = monthlyExpensesResult[0]?.total ?? 0;
+  const monthlyProfit = monthlyEarnings - monthlyExpenses;
 
   return {
     totalMembers,
     totalPackages,
     activeMemberships,
     expiredMemberships,
+    totalEarnings,
+    monthlyEarnings,
+    monthlyExpenses,
+    monthlyProfit,
   };
 }
 
 export default async function DashboardPage() {
-  const stats = await getDashboardStats();
+  const [stats, username] = await Promise.all([
+    getDashboardStats(),
+    getUsername(),
+  ]);
+  const displayName =
+    username.charAt(0).toUpperCase() + username.slice(1).toLowerCase();
 
   const cards = [
     {
@@ -63,7 +140,9 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+        <h1 className="text-3xl font-bold text-foreground">
+          Hoş geldin, {displayName}
+        </h1>
         <p className="text-muted-foreground mt-2">
           Üyelik yönetim sisteminize hoş geldiniz
         </p>
@@ -91,6 +170,63 @@ export default async function DashboardPage() {
           );
         })}
       </div>
+
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-emerald-50 dark:bg-emerald-950/40 border-b border-emerald-100 dark:border-emerald-900/50">
+          <CardTitle className="flex items-center gap-2 text-emerald-800 dark:text-emerald-200">
+            <Banknote className="h-6 w-6" />
+            Kazanç Özeti
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 dark:bg-muted/20 border border-border/50">
+              <div className="flex-shrink-0 p-3 rounded-lg bg-emerald-100 dark:bg-emerald-900/40">
+                <Banknote className="h-6 w-6 sm:h-8 sm:w-8 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-muted-foreground">Toplam Kazanç</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground tabular-nums">
+                  {stats.totalEarnings.toLocaleString("tr-TR")} ₺
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 dark:bg-muted/20 border border-border/50">
+              <div className="flex-shrink-0 p-3 rounded-lg bg-blue-100 dark:bg-blue-900/40">
+                <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-muted-foreground">Bu Ay Kazanç</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground tabular-nums">
+                  {stats.monthlyEarnings.toLocaleString("tr-TR")} ₺
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 dark:bg-muted/20 border border-border/50">
+              <div className="flex-shrink-0 p-3 rounded-lg bg-red-100 dark:bg-red-900/40">
+                <Receipt className="h-6 w-6 sm:h-8 sm:w-8 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-muted-foreground">Bu Ay Harcama</p>
+                <p className="text-xl sm:text-2xl font-bold text-destructive tabular-nums">
+                  {stats.monthlyExpenses.toLocaleString("tr-TR")} ₺
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 dark:bg-muted/20 border border-border/50">
+              <div className="flex-shrink-0 p-3 rounded-lg bg-amber-100 dark:bg-amber-900/40">
+                <PiggyBank className="h-6 w-6 sm:h-8 sm:w-8 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-muted-foreground">Bu Ay Kar</p>
+                <p className={`text-xl sm:text-2xl font-bold tabular-nums ${stats.monthlyProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                  {stats.monthlyProfit.toLocaleString("tr-TR")} ₺
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

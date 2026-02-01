@@ -96,6 +96,37 @@ export default function EditMembershipDialog({ membership, members, packages, op
     const pkgObj = typeof currentPkg === 'object' ? currentPkg : { _id: currentPkg, name: 'Mevcut paket', durationInDays: 0, price: 0 };
     pkgList.unshift(pkgObj);
   }
+
+  // Başlangıç + paket süresine göre bitiş tarihi hesapla (YYYY-MM-DD)
+  const getEndDateFromStart = (startDateStr, durationInDays) => {
+    if (!startDateStr || durationInDays == null || durationInDays < 0) return '';
+    const start = new Date(startDateStr + 'T12:00:00');
+    start.setDate(start.getDate() + Number(durationInDays));
+    return start.toISOString().split('T')[0];
+  };
+
+  const handleStartDateChange = (newStartDate) => {
+    const pkg = pkgList.find((p) => p._id === formData.packageId);
+    const duration = pkg?.durationInDays ?? 0;
+    const newEndDate = getEndDateFromStart(newStartDate, duration);
+    setFormData((prev) => ({
+      ...prev,
+      startDate: newStartDate,
+      endDate: newEndDate || prev.endDate,
+    }));
+  };
+
+  const handlePackageChange = (newPackageId) => {
+    const pkg = pkgList.find((p) => p._id === newPackageId);
+    const duration = pkg?.durationInDays ?? 0;
+    const newEndDate = getEndDateFromStart(formData.startDate, duration);
+    setFormData((prev) => ({
+      ...prev,
+      packageId: newPackageId,
+      endDate: newEndDate || prev.endDate,
+    }));
+  };
+
   const statusOptions = [
     { value: 'active', label: 'Aktif' },
     { value: 'expired', label: 'Süresi Dolmuş' },
@@ -122,7 +153,7 @@ export default function EditMembershipDialog({ membership, members, packages, op
             <Label htmlFor="edit-membership-package">Paket</Label>
             <Select
               value={formData.packageId}
-              onValueChange={(value) => setFormData({ ...formData, packageId: value })}
+              onValueChange={handlePackageChange}
               disabled={loading}
             >
               <SelectTrigger id="edit-membership-package">
@@ -143,7 +174,7 @@ export default function EditMembershipDialog({ membership, members, packages, op
               id="edit-membership-start"
               type="date"
               value={formData.startDate}
-              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+              onChange={(e) => handleStartDateChange(e.target.value)}
               required
               disabled={loading}
             />

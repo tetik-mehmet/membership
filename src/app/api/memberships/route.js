@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import MemberMembership from '@/models/MemberMembership';
 import MembershipPackage from '@/models/MembershipPackage';
+import EarningsRecord from '@/models/EarningsRecord';
 import { verifyToken } from '@/lib/auth';
 import { addDays } from 'date-fns';
 
@@ -109,6 +110,12 @@ export async function POST(request) {
       startDate: start,
       endDate,
       status: 'active',
+    });
+
+    // Kazanç kaydı: üye silinse bile bu tutar düşmez
+    await EarningsRecord.create({
+      amount: packageData.price,
+      date: new Date(),
     });
 
     // Populate references before returning

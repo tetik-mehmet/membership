@@ -10,6 +10,8 @@ import {
   Users,
   Package,
   CreditCard,
+  Receipt,
+  Settings,
   LogOut,
   Menu,
   X,
@@ -20,6 +22,7 @@ const navigation = [
   { name: 'Üyeler', href: '/dashboard/members', icon: Users },
   { name: 'Paketler', href: '/dashboard/packages', icon: Package },
   { name: 'Üyelikler', href: '/dashboard/memberships', icon: CreditCard },
+  { name: 'Harcamalar', href: '/dashboard/expenses', icon: Receipt },
 ];
 
 export default function DashboardShell({ children }) {
@@ -79,6 +82,8 @@ export default function DashboardShell({ children }) {
             {navigation.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
+              const isExpenses = item.name === 'Harcamalar';
+              const isMemberships = item.name === 'Üyelikler';
 
               return (
                 <Link
@@ -88,9 +93,17 @@ export default function DashboardShell({ children }) {
                   className={`
                     flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
                     transition-colors duration-200
-                    ${isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    ${isExpenses
+                      ? isActive
+                        ? 'bg-orange-400 text-orange-950 dark:bg-orange-500 dark:text-orange-950'
+                        : 'text-muted-foreground hover:bg-orange-400 hover:text-orange-950 dark:hover:bg-orange-500 dark:hover:text-orange-950'
+                      : isMemberships
+                        ? isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-[#C9A227] hover:text-[#1a1a0a] dark:hover:bg-[#D4AF37] dark:hover:text-[#1a1a0a]'
+                        : isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                     }
                   `}
                 >
@@ -101,8 +114,22 @@ export default function DashboardShell({ children }) {
             })}
           </nav>
 
-          {/* Logout button */}
-          <div className="p-4 border-t border-border">
+          {/* Ayarlar + Çıkış Yap - birbirine yakın */}
+          <div className="p-4 pt-2 border-t border-border space-y-1">
+            <Link
+              href="/dashboard/settings"
+              onClick={() => setSidebarOpen(false)}
+              className={`
+                flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
+                transition-colors duration-200
+                ${pathname === '/dashboard/settings'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'}
+              `}
+            >
+              <Settings className="h-5 w-5 shrink-0" />
+              Ayarlar
+            </Link>
             <Button
               onClick={handleLogout}
               variant="outline"
