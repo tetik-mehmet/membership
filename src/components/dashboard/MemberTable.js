@@ -249,7 +249,7 @@ export default function MemberTable({ initialMembers }) {
                       {member.phone ? (
                         <a
                           href={`tel:${member.phone.replace(/\s+/g, "")}`}
-                          className="inline-flex items-center gap-1.5 text-orange-600 hover:text-orange-700 hover:underline cursor-pointer active:opacity-70 transition-colors"
+                          className="inline-flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 hover:underline cursor-pointer active:opacity-70 transition-colors [text-shadow:0_0_10px_rgba(129,140,248,0.9)]"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4" />

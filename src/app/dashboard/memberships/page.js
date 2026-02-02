@@ -1,25 +1,27 @@
-import { Plus } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import MembershipTable from '@/components/dashboard/MembershipTable';
-import AssignPackageDialog from '@/components/dashboard/AssignPackageDialog';
-import connectDB from '@/lib/db';
-import MemberMembership from '@/models/MemberMembership';
-import Member from '@/models/Member';
-import MembershipPackage from '@/models/MembershipPackage';
+import { Plus } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import MembershipTable from "@/components/dashboard/MembershipTable";
+import AssignPackageDialog from "@/components/dashboard/AssignPackageDialog";
+import connectDB from "@/lib/db";
+import MemberMembership from "@/models/MemberMembership";
+import Member from "@/models/Member";
+import MembershipPackage from "@/models/MembershipPackage";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 async function getMembershipsData() {
   await connectDB();
-  
+
   const [memberships, members, packages] = await Promise.all([
     MemberMembership.find()
-      .populate('memberId', 'firstName lastName email')
-      .populate('packageId', 'name durationInDays price')
-      .sort({ createdAt: -1 })
+      .populate("memberId", "firstName lastName email")
+      .populate("packageId", "name durationInDays price")
+      .sort({ startDate: -1 })
       .lean(),
     Member.find().sort({ firstName: 1 }).lean(),
-    MembershipPackage.find({ isActive: true }).sort({ durationInDays: 1 }).lean(),
+    MembershipPackage.find({ isActive: true })
+      .sort({ durationInDays: 1 })
+      .lean(),
   ]);
 
   return {
@@ -37,7 +39,9 @@ export default async function MembershipsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Üyelikler</h1>
-          <p className="text-muted-foreground mt-2">Üyelikleri görüntüleyin ve yönetin</p>
+          <p className="text-muted-foreground mt-2">
+            Üyelikleri görüntüleyin ve yönetin
+          </p>
         </div>
         <AssignPackageDialog members={members} packages={packages}>
           <button className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
@@ -52,7 +56,7 @@ export default async function MembershipsPage() {
           <CardTitle>Üyelik Listesi</CardTitle>
         </CardHeader>
         <CardContent>
-          <MembershipTable 
+          <MembershipTable
             initialMemberships={memberships}
             members={members}
             packages={packages}

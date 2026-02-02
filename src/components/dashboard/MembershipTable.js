@@ -280,7 +280,7 @@ export default function MembershipTable({
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow>
+                      <TableRow className="bg-amber-50/80 dark:bg-amber-950/30 border-border backdrop-blur-sm">
                         <TableHead>Üye</TableHead>
                         <TableHead className="hidden sm:table-cell">
                           Başlangıç

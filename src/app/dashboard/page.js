@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import Image from "next/image";
 import {
   Users,
   CreditCard,
@@ -10,6 +11,8 @@ import {
   PiggyBank,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import MembershipDistributionChart from "@/components/dashboard/MembershipDistributionChart";
+import DashboardLottie from "@/components/dashboard/DashboardLottie";
 import connectDB from "@/lib/db";
 import Member from "@/models/Member";
 import MembershipPackage from "@/models/MembershipPackage";
@@ -55,6 +58,7 @@ async function getDashboardStats() {
     totalEarningsResult,
     monthlyEarningsResult,
     monthlyExpensesResult,
+    distributionByPackageResult,
   ] = await Promise.all([
     Member.countDocuments(),
     MembershipPackage.countDocuments({ isActive: true }),
@@ -89,12 +93,37 @@ async function getDashboardStats() {
       { $match: { date: { $gte: startOfMonth, $lt: startOfNextMonth } } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]),
+    // Üyelik dağılımı: paket türüne göre (paket adı + üyelik sayısı)
+    MemberMembership.aggregate([
+      {
+        $lookup: {
+          from: "membershippackages",
+          localField: "packageId",
+          foreignField: "_id",
+          as: "pkg",
+        },
+      },
+      { $unwind: { path: "$pkg", preserveNullAndEmptyArrays: true } },
+      {
+        $group: {
+          _id: "$packageId",
+          name: { $first: { $ifNull: ["$pkg.name", "Bilinmeyen Paket"] } },
+          value: { $sum: 1 },
+        },
+      },
+      { $sort: { value: -1 } },
+      { $project: { _id: 0, name: "$name", value: "$value" } },
+    ]),
   ]);
 
   const totalEarnings = totalEarningsResult[0]?.total ?? 0;
   const monthlyEarnings = monthlyEarningsResult[0]?.total ?? 0;
   const monthlyExpenses = monthlyExpensesResult[0]?.total ?? 0;
   const monthlyProfit = monthlyEarnings - monthlyExpenses;
+
+  const membershipDistribution = (distributionByPackageResult || []).map(
+    (d) => ({ name: d.name || "Bilinmeyen", value: d.value })
+  );
 
   return {
     totalMembers,
@@ -105,6 +134,7 @@ async function getDashboardStats() {
     monthlyEarnings,
     monthlyExpenses,
     monthlyProfit,
+    membershipDistribution,
   };
 }
 
@@ -149,14 +179,26 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">
-          Hoş geldin, {displayName}
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Üyelik yönetim sisteminize hoş geldiniz
-        </p>
-      </div>
+      <header className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+        <div className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl overflow-hidden bg-muted/50 dark:bg-muted/20 border border-border/50 shadow-sm">
+          <Image
+            src="/logo_montana.png"
+            alt="Montana"
+            fill
+            className="object-contain p-1.5"
+            sizes="(max-width: 640px) 64px, 80px"
+            priority
+          />
+        </div>
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+            Hoş geldin, {displayName}
+          </h1>
+          <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
+            Üyelik yönetim sisteminize hoş geldiniz
+          </p>
+        </div>
+      </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         {cards.map((card) => {
@@ -180,6 +222,30 @@ export default async function DashboardPage() {
           );
         })}
       </div>
+
+      <Card className="overflow-hidden">
+        <CardHeader className="border-b border-border/50 bg-muted/30 dark:bg-muted/20">
+          <CardTitle className="flex items-center gap-2 text-foreground">
+            <Package className="h-5 w-5 text-primary" />
+            Üyeliklerin Dağılımı
+          </CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            Paket çeşitlerine göre üyelik sayıları
+          </p>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col lg:flex-row items-center gap-4 lg:gap-4">
+            <div className="w-full min-w-0 flex-1 max-w-xl">
+              <MembershipDistributionChart
+                data={stats.membershipDistribution}
+              />
+            </div>
+            <div className="flex shrink-0 w-52 h-52 sm:w-60 sm:h-60">
+              <DashboardLottie className="w-full h-full" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="overflow-hidden">
         <CardHeader className="bg-emerald-50 dark:bg-emerald-950/40 border-b border-emerald-100 dark:border-emerald-900/50">
