@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Ban, Pencil, Clock, Package } from "lucide-react";
+import { Ban, Pencil, Clock, Package, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -26,6 +27,8 @@ export default function MembershipTable({
   const [memberships, setMemberships] = useState(initialMemberships);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  const [search, setSearch] = useState("");
+  const [showExpiringSoon, setShowExpiringSoon] = useState(false);
   const [editMembership, setEditMembership] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
@@ -33,10 +36,45 @@ export default function MembershipTable({
   const getEffectiveStatus = (m) =>
     m.status === "active" && isExpired(m.endDate) ? "expired" : m.status;
 
+  // Süresi 10 gün veya daha az kalan (henüz dolmamış) üyelikler
+  const getDaysRemaining = (endDate) => {
+    const end = startOfDay(new Date(endDate));
+    const today = startOfDay(new Date());
+    return differenceInDays(end, today);
+  };
+
+  const isExpiringSoon = (membership) => {
+    if (membership.status !== "active") return false;
+    if (isExpired(membership.endDate)) return false;
+    const days = getDaysRemaining(membership.endDate);
+    return days >= 0 && days <= 10;
+  };
+
   const filteredMemberships = memberships.filter((membership) => {
     const effective = getEffectiveStatus(membership);
-    if (activeTab === "all") return effective !== "expired"; // Süresi dolmuş hariç
-    return effective === activeTab;
+
+    // Tab filtresi
+    const matchesTab =
+      activeTab === "all"
+        ? effective !== "expired" // Süresi dolmuş hariç
+        : effective === activeTab;
+
+    // Arama filtresi - üye ismine göre
+    const searchLower = search.toLowerCase();
+    const memberFirstName = membership.memberId?.firstName?.toLowerCase() || "";
+    const memberLastName = membership.memberId?.lastName?.toLowerCase() || "";
+    const fullName = `${memberFirstName} ${memberLastName}`.trim();
+
+    const matchesSearch =
+      !search ||
+      memberFirstName.includes(searchLower) ||
+      memberLastName.includes(searchLower) ||
+      fullName.includes(searchLower);
+
+    // 10 günden az kalanlar filtresi
+    const matchesExpiringSoon = !showExpiringSoon || isExpiringSoon(membership);
+
+    return matchesTab && matchesSearch && matchesExpiringSoon;
   });
 
   // Paketlere göre grupla (paket sırasına göre)
@@ -141,20 +179,6 @@ export default function MembershipTable({
     );
   };
 
-  // Süresi 10 gün veya daha az kalan (henüz dolmamış) üyelikler
-  const getDaysRemaining = (endDate) => {
-    const end = startOfDay(new Date(endDate));
-    const today = startOfDay(new Date());
-    return differenceInDays(end, today);
-  };
-
-  const isExpiringSoon = (membership) => {
-    if (membership.status !== "active") return false;
-    if (isExpired(membership.endDate)) return false;
-    const days = getDaysRemaining(membership.endDate);
-    return days >= 0 && days <= 10;
-  };
-
   // Her grup için farklı arka plan rengi (light/dark mode uyumlu)
   const groupColors = [
     "bg-blue-100 dark:bg-blue-950/60 border-blue-200/60 dark:border-blue-800/50",
@@ -178,6 +202,25 @@ export default function MembershipTable({
         onOpenChange={setEditDialogOpen}
         onSuccess={handleEditSuccess}
       />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative flex-1 max-w-sm w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Üye ismine göre ara..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Button
+          variant={showExpiringSoon ? "default" : "outline"}
+          onClick={() => setShowExpiringSoon(!showExpiringSoon)}
+          className="w-full sm:w-auto"
+        >
+          <Clock className="h-4 w-4 mr-2" />
+          {showExpiringSoon ? "Tümünü Göster" : "10 Günden Az Kalanlar"}
+        </Button>
+      </div>
       <TabsList>
         <TabsTrigger value="all">
           Tümü (
