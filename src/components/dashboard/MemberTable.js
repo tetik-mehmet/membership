@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Pencil, Trash2, Search } from 'lucide-react';
-import { toast } from 'sonner';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { useState } from "react";
+import { Pencil, Trash2, Search, Phone } from "lucide-react";
+import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -20,14 +20,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
-import EditMemberDialog from '@/components/dashboard/EditMemberDialog';
+} from "@/components/ui/dialog";
+import { format } from "date-fns";
+import { tr } from "date-fns/locale";
+import EditMemberDialog from "@/components/dashboard/EditMemberDialog";
 
 export default function MemberTable({ initialMembers }) {
   const [members, setMembers] = useState(initialMembers);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [editMember, setEditMember] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -39,7 +39,8 @@ export default function MemberTable({ initialMembers }) {
     return (
       member.firstName.toLowerCase().includes(searchLower) ||
       member.lastName.toLowerCase().includes(searchLower) ||
-      (member.email && member.email.toLowerCase().includes(searchLower))
+      (member.email && member.email.toLowerCase().includes(searchLower)) ||
+      (member.phone && member.phone.toLowerCase().includes(searchLower))
     );
   });
 
@@ -57,7 +58,7 @@ export default function MemberTable({ initialMembers }) {
     setLoading(true);
     try {
       const response = await fetch(`/api/members/${memberId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       const data = await response.json();
@@ -68,12 +69,16 @@ export default function MemberTable({ initialMembers }) {
           setEditMember(null);
           setEditDialogOpen(false);
         }
-        toast.success('Üye silindi', { description: 'Üye ve bağlı üyelikler kaldırıldı.' });
+        toast.success("Üye silindi", {
+          description: "Üye ve bağlı üyelikler kaldırıldı.",
+        });
       } else {
-        toast.error('Üye silinemedi', { description: data.error || 'Lütfen tekrar deneyin.' });
+        toast.error("Üye silinemedi", {
+          description: data.error || "Lütfen tekrar deneyin.",
+        });
       }
     } catch (error) {
-      toast.error('Bir hata oluştu', { description: 'Lütfen tekrar deneyin.' });
+      toast.error("Bir hata oluştu", { description: "Lütfen tekrar deneyin." });
     } finally {
       setLoading(false);
     }
@@ -85,7 +90,16 @@ export default function MemberTable({ initialMembers }) {
   };
 
   const handleEditSuccess = (updatedMember) => {
-    setMembers(members.map((m) => (m._id === updatedMember._id ? updatedMember : m)));
+    if (!updatedMember) return;
+
+    // Güncellenmiş üye verisini state'e ekle
+    setMembers(
+      members.map((m) =>
+        m._id === updatedMember._id
+          ? { ...updatedMember, phone: updatedMember.phone || "" }
+          : m
+      )
+    );
   };
 
   return (
@@ -101,7 +115,8 @@ export default function MemberTable({ initialMembers }) {
           <DialogHeader>
             <DialogTitle>Üyeyi sil</DialogTitle>
             <DialogDescription>
-              Bu üyeyi silmek istediğinizden emin misiniz? Üyeye ait tüm üyelikler de kaldırılacaktır. Bu işlem geri alınamaz.
+              Bu üyeyi silmek istediğinizden emin misiniz? Üyeye ait tüm
+              üyelikler de kaldırılacaktır. Bu işlem geri alınamaz.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
@@ -136,7 +151,7 @@ export default function MemberTable({ initialMembers }) {
       {filteredMembers.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground">
-            {search ? 'Üye bulunamadı' : 'Henüz üye eklenmemiş'}
+            {search ? "Üye bulunamadı" : "Henüz üye eklenmemiş"}
           </p>
         </div>
       ) : (
@@ -147,6 +162,7 @@ export default function MemberTable({ initialMembers }) {
                 <TableRow>
                   <TableHead>Ad Soyad</TableHead>
                   <TableHead>E-posta</TableHead>
+                  <TableHead>Cep Telefonu</TableHead>
                   <TableHead>Kayıt Tarihi</TableHead>
                   <TableHead className="text-right">İşlemler</TableHead>
                 </TableRow>
@@ -157,9 +173,25 @@ export default function MemberTable({ initialMembers }) {
                     <TableCell className="font-medium">
                       {member.firstName} {member.lastName}
                     </TableCell>
-                    <TableCell>{member.email || '-'}</TableCell>
+                    <TableCell>{member.email || "-"}</TableCell>
                     <TableCell>
-                      {format(new Date(member.createdAt), 'dd MMM yyyy', { locale: tr })}
+                      {member.phone ? (
+                        <a
+                          href={`tel:${member.phone.replace(/\s+/g, "")}`}
+                          className="inline-flex items-center gap-1.5 text-orange-600 hover:text-orange-700 hover:underline cursor-pointer active:opacity-70 transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <span className="font-medium">{member.phone}</span>
+                        </a>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(member.createdAt), "dd MMM yyyy", {
+                        locale: tr,
+                      })}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">

@@ -25,9 +25,14 @@ export default function MembershipTable({ initialMemberships, members, packages 
   const [editMembership, setEditMembership] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
+  const isExpired = (endDate) => new Date(endDate) < new Date();
+  const getEffectiveStatus = (m) =>
+    m.status === 'active' && isExpired(m.endDate) ? 'expired' : m.status;
+
   const filteredMemberships = memberships.filter((membership) => {
-    if (activeTab === 'all') return membership.status !== 'expired'; // Süresi dolmuş hariç
-    return membership.status === activeTab;
+    const effective = getEffectiveStatus(membership);
+    if (activeTab === 'all') return effective !== 'expired'; // Süresi dolmuş hariç
+    return effective === activeTab;
   });
 
   // Paketlere göre grupla (paket sırasına göre)
@@ -125,10 +130,6 @@ export default function MembershipTable({ initialMemberships, members, packages 
     );
   };
 
-  const isExpired = (endDate) => {
-    return new Date(endDate) < new Date();
-  };
-
   // Süresi 10 gün veya daha az kalan (henüz dolmamış) üyelikler
   const getDaysRemaining = (endDate) => {
     const end = startOfDay(new Date(endDate));
@@ -154,12 +155,12 @@ export default function MembershipTable({ initialMemberships, members, packages 
         onSuccess={handleEditSuccess}
       />
       <TabsList>
-        <TabsTrigger value="all">Tümü ({memberships.filter((m) => m.status !== 'expired').length})</TabsTrigger>
+        <TabsTrigger value="all">Tümü ({memberships.filter((m) => getEffectiveStatus(m) !== 'expired').length})</TabsTrigger>
         <TabsTrigger value="active">
-          Aktif ({memberships.filter((m) => m.status === 'active').length})
+          Aktif ({memberships.filter((m) => getEffectiveStatus(m) === 'active').length})
         </TabsTrigger>
         <TabsTrigger value="expired">
-          Süresi Dolmuş ({memberships.filter((m) => m.status === 'expired').length})
+          Süresi Dolmuş ({memberships.filter((m) => getEffectiveStatus(m) === 'expired').length})
         </TabsTrigger>
       </TabsList>
 
@@ -228,7 +229,7 @@ export default function MembershipTable({ initialMemberships, members, packages 
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>{getStatusBadge(membership.status)}</TableCell>
+                          <TableCell>{getStatusBadge(getEffectiveStatus(membership))}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
                               <Button
@@ -240,7 +241,7 @@ export default function MembershipTable({ initialMemberships, members, packages 
                               >
                                 <Pencil className="h-4 w-4" />
                               </Button>
-                              {membership.status === 'active' && (
+                              {getEffectiveStatus(membership) === 'active' && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
