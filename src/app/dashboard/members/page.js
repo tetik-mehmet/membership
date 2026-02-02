@@ -1,11 +1,11 @@
-import { Plus } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import MemberTable from '@/components/dashboard/MemberTable';
-import AddMemberDialog from '@/components/dashboard/AddMemberDialog';
-import connectDB from '@/lib/db';
-import Member from '@/models/Member';
+import { Plus } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import MemberTable from "@/components/dashboard/MemberTable";
+import AddMemberDialog from "@/components/dashboard/AddMemberDialog";
+import connectDB from "@/lib/db";
+import Member from "@/models/Member";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 async function getMembers() {
   await connectDB();
@@ -21,7 +21,9 @@ export default async function MembersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Üyeler</h1>
-          <p className="text-muted-foreground mt-2">Tüm üyeleri görüntüleyin ve yönetin</p>
+          <p className="text-muted-foreground mt-2">
+            Tüm üyeleri görüntüleyin ve yönetin
+          </p>
         </div>
         <AddMemberDialog>
           <button className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">

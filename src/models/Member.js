@@ -20,6 +20,11 @@ const MemberSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  paymentStatus: {
+    type: String,
+    enum: ["paid", "unpaid"],
+    default: "unpaid",
+  },
   createdAt: {
     type: Date,
     default: Date.now,

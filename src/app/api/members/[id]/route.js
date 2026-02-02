@@ -18,7 +18,7 @@ export async function PUT(request, { params }) {
 
     const { id } = await params;
     const requestData = await request.json();
-    const { firstName, lastName, email, phone } = requestData;
+    const { firstName, lastName, email, phone, paymentStatus } = requestData;
 
     await connectDB();
 
@@ -26,13 +26,20 @@ export async function PUT(request, { params }) {
     const trimmedPhone = phone?.trim() || "";
 
     // Tüm alanları açıkça $set ile güncelle - phone alanını MUTLAKA dahil et
+    const updateFields = {
+      firstName: firstName?.trim(),
+      lastName: lastName?.trim(),
+      email: email?.trim() || "",
+      phone: trimmedPhone, // Boş string olsa bile kaydet
+    };
+
+    // paymentStatus varsa ekle
+    if (paymentStatus !== undefined) {
+      updateFields.paymentStatus = paymentStatus;
+    }
+
     const updateQuery = {
-      $set: {
-        firstName: firstName?.trim(),
-        lastName: lastName?.trim(),
-        email: email?.trim() || "",
-        phone: trimmedPhone, // Boş string olsa bile kaydet
-      },
+      $set: updateFields,
     };
 
     const member = await Member.findByIdAndUpdate(id, updateQuery, {

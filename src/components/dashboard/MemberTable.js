@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Trash2, Search, Phone } from "lucide-react";
+import { Pencil, Trash2, Search, Phone, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { format } from "date-fns";
-import { tr } from "date-fns/locale";
 import EditMemberDialog from "@/components/dashboard/EditMemberDialog";
 
 export default function MemberTable({ initialMembers }) {
@@ -102,6 +100,44 @@ export default function MemberTable({ initialMembers }) {
     );
   };
 
+  const handlePaymentStatusChange = async (memberId, newStatus) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/members/${memberId}/payment-status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentStatus: newStatus }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMembers(
+          members.map((m) =>
+            m._id === memberId ? { ...m, paymentStatus: newStatus } : m
+          )
+        );
+        toast.success(
+          newStatus === "paid" ? "Ödeme alındı" : "Ödeme durumu güncellendi",
+          {
+            description:
+              newStatus === "paid"
+                ? "Üyenin ödemesi alındı olarak işaretlendi."
+                : "Üyenin ödemesi alınmadı olarak işaretlendi.",
+          }
+        );
+      } else {
+        toast.error("Güncelleme başarısız", {
+          description: data.error || "Lütfen tekrar deneyin.",
+        });
+      }
+    } catch (error) {
+      toast.error("Bir hata oluştu", { description: "Lütfen tekrar deneyin." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <EditMemberDialog
@@ -163,7 +199,7 @@ export default function MemberTable({ initialMembers }) {
                   <TableHead>Ad Soyad</TableHead>
                   <TableHead>E-posta</TableHead>
                   <TableHead>Cep Telefonu</TableHead>
-                  <TableHead>Kayıt Tarihi</TableHead>
+                  <TableHead>Ödeme Durumu</TableHead>
                   <TableHead className="text-right">İşlemler</TableHead>
                 </TableRow>
               </TableHeader>
@@ -189,9 +225,54 @@ export default function MemberTable({ initialMembers }) {
                       )}
                     </TableCell>
                     <TableCell>
-                      {format(new Date(member.createdAt), "dd MMM yyyy", {
-                        locale: tr,
-                      })}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant={
+                            member.paymentStatus === "paid"
+                              ? "default"
+                              : "outline"
+                          }
+                          size="sm"
+                          onClick={() =>
+                            handlePaymentStatusChange(member._id, "paid")
+                          }
+                          disabled={loading || member.paymentStatus === "paid"}
+                          className={`text-xs px-2 py-1 h-7 ${
+                            member.paymentStatus === "paid"
+                              ? "bg-green-600 hover:bg-green-700 text-white"
+                              : "hover:bg-green-100 hover:text-green-700 hover:border-green-300"
+                          }`}
+                        >
+                          <Check className="h-3 w-3 mr-1" />
+                          Alındı
+                        </Button>
+                        <Button
+                          variant={
+                            member.paymentStatus === "unpaid" ||
+                            !member.paymentStatus
+                              ? "default"
+                              : "outline"
+                          }
+                          size="sm"
+                          onClick={() =>
+                            handlePaymentStatusChange(member._id, "unpaid")
+                          }
+                          disabled={
+                            loading ||
+                            member.paymentStatus === "unpaid" ||
+                            !member.paymentStatus
+                          }
+                          className={`text-xs px-2 py-1 h-7 ${
+                            member.paymentStatus === "unpaid" ||
+                            !member.paymentStatus
+                              ? "bg-red-600 hover:bg-red-700 text-white"
+                              : "hover:bg-red-100 hover:text-red-700 hover:border-red-300"
+                          }`}
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Alınmadı
+                        </Button>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
