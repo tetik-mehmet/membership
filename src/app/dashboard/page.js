@@ -1,11 +1,19 @@
 import { cookies } from "next/headers";
-import { Users, CreditCard, AlertCircle, Package, Banknote, TrendingUp, Receipt, PiggyBank } from "lucide-react";
+import {
+  Users,
+  CreditCard,
+  AlertCircle,
+  Package,
+  Banknote,
+  TrendingUp,
+  Receipt,
+  PiggyBank,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import connectDB from "@/lib/db";
 import Member from "@/models/Member";
 import MembershipPackage from "@/models/MembershipPackage";
 import MemberMembership from "@/models/MemberMembership";
-import EarningsRecord from "@/models/EarningsRecord";
 import Expense from "@/models/Expense";
 import { verifyToken } from "@/lib/auth";
 
@@ -25,36 +33,20 @@ function getStartOfMonth() {
   return d;
 }
 
+function getStartOfNextMonth() {
+  const d = getStartOfMonth();
+  d.setMonth(d.getMonth() + 1);
+  return d;
+}
+
 async function getDashboardStats() {
   await connectDB();
 
   const startOfMonth = getStartOfMonth();
+  const startOfNextMonth = getStartOfNextMonth();
 
-  // Kazançlar silinmeyen EarningsRecord'dan; üye silindiğinde düşmez
-  const earningsCount = await EarningsRecord.countDocuments();
-  const membershipCount = await MemberMembership.countDocuments();
-
-  // İlk kez: mevcut üyeliklerden tek seferlik backfill (eski kazançlar görünsün)
-  if (earningsCount === 0 && membershipCount > 0) {
-    const membershipsWithPrice = await MemberMembership.aggregate([
-      {
-        $lookup: {
-          from: "membershippackages",
-          localField: "packageId",
-          foreignField: "_id",
-          as: "pkg",
-        },
-      },
-      { $unwind: "$pkg" },
-      { $project: { amount: "$pkg.price", date: "$createdAt" } },
-    ]);
-    if (membershipsWithPrice.length > 0) {
-      await EarningsRecord.insertMany(
-        membershipsWithPrice.map(({ amount, date }) => ({ amount, date }))
-      );
-    }
-  }
-
+  // Toplam kazanç: Üyelikler sayfasındaki gibi - tüm üyeliklerin paket fiyatları toplamı
+  // Aylık kazanç: Başlangıç tarihi (startDate) bu ay içinde olan üyeliklerin paket fiyatları toplamı
   const [
     totalMembers,
     totalPackages,
@@ -68,15 +60,33 @@ async function getDashboardStats() {
     MembershipPackage.countDocuments({ isActive: true }),
     MemberMembership.countDocuments({ status: "active" }),
     MemberMembership.countDocuments({ status: "expired" }),
-    EarningsRecord.aggregate([
-      { $group: { _id: null, total: { $sum: "$amount" } } },
+    MemberMembership.aggregate([
+      {
+        $lookup: {
+          from: "membershippackages",
+          localField: "packageId",
+          foreignField: "_id",
+          as: "pkg",
+        },
+      },
+      { $unwind: "$pkg" },
+      { $group: { _id: null, total: { $sum: "$pkg.price" } } },
     ]),
-    EarningsRecord.aggregate([
-      { $match: { date: { $gte: startOfMonth } } },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
+    MemberMembership.aggregate([
+      { $match: { startDate: { $gte: startOfMonth, $lt: startOfNextMonth } } },
+      {
+        $lookup: {
+          from: "membershippackages",
+          localField: "packageId",
+          foreignField: "_id",
+          as: "pkg",
+        },
+      },
+      { $unwind: "$pkg" },
+      { $group: { _id: null, total: { $sum: "$pkg.price" } } },
     ]),
     Expense.aggregate([
-      { $match: { date: { $gte: startOfMonth } } },
+      { $match: { date: { $gte: startOfMonth, $lt: startOfNextMonth } } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]),
   ]);
@@ -185,7 +195,9 @@ export default async function DashboardPage() {
                 <Banknote className="h-6 w-6 sm:h-8 sm:w-8 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-medium text-muted-foreground">Toplam Kazanç</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Toplam Kazanç
+                </p>
                 <p className="text-xl sm:text-2xl font-bold text-foreground tabular-nums">
                   {stats.totalEarnings.toLocaleString("tr-TR")} ₺
                 </p>
@@ -196,7 +208,9 @@ export default async function DashboardPage() {
                 <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-medium text-muted-foreground">Bu Ay Kazanç</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Bu Ay Kazanç
+                </p>
                 <p className="text-xl sm:text-2xl font-bold text-foreground tabular-nums">
                   {stats.monthlyEarnings.toLocaleString("tr-TR")} ₺
                 </p>
@@ -207,7 +221,9 @@ export default async function DashboardPage() {
                 <Receipt className="h-6 w-6 sm:h-8 sm:w-8 text-red-600 dark:text-red-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-medium text-muted-foreground">Bu Ay Harcama</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Bu Ay Harcama
+                </p>
                 <p className="text-xl sm:text-2xl font-bold text-destructive tabular-nums">
                   {stats.monthlyExpenses.toLocaleString("tr-TR")} ₺
                 </p>
@@ -218,8 +234,16 @@ export default async function DashboardPage() {
                 <PiggyBank className="h-6 w-6 sm:h-8 sm:w-8 text-amber-600 dark:text-amber-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-medium text-muted-foreground">Bu Ay Kar</p>
-                <p className={`text-xl sm:text-2xl font-bold tabular-nums ${stats.monthlyProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Bu Ay Kar
+                </p>
+                <p
+                  className={`text-xl sm:text-2xl font-bold tabular-nums ${
+                    stats.monthlyProfit >= 0
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-destructive"
+                  }`}
+                >
                   {stats.monthlyProfit.toLocaleString("tr-TR")} ₺
                 </p>
               </div>

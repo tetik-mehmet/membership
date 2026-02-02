@@ -6,6 +6,13 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -26,6 +33,7 @@ import EditMemberDialog from "@/components/dashboard/EditMemberDialog";
 export default function MemberTable({ initialMembers }) {
   const [members, setMembers] = useState(initialMembers);
   const [search, setSearch] = useState("");
+  const [paymentFilter, setPaymentFilter] = useState("all");
   const [loading, setLoading] = useState(false);
   const [editMember, setEditMember] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -34,12 +42,21 @@ export default function MemberTable({ initialMembers }) {
 
   const filteredMembers = members.filter((member) => {
     const searchLower = search.toLowerCase();
-    return (
+
+    const matchesSearch =
       member.firstName.toLowerCase().includes(searchLower) ||
       member.lastName.toLowerCase().includes(searchLower) ||
       (member.email && member.email.toLowerCase().includes(searchLower)) ||
-      (member.phone && member.phone.toLowerCase().includes(searchLower))
-    );
+      (member.phone && member.phone.toLowerCase().includes(searchLower));
+
+    const matchesPayment =
+      paymentFilter === "all"
+        ? true
+        : paymentFilter === "paid"
+        ? member.paymentStatus === "paid"
+        : member.paymentStatus === "unpaid" || !member.paymentStatus;
+
+    return matchesSearch && matchesPayment;
   });
 
   const handleDeleteClick = (memberId) => {
@@ -172,8 +189,8 @@ export default function MemberTable({ initialMembers }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative flex-1 max-w-sm w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Üye ara..."
@@ -181,6 +198,24 @@ export default function MemberTable({ initialMembers }) {
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
           />
+        </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">
+            Ödeme durumu:
+          </span>
+          <Select
+            value={paymentFilter}
+            onValueChange={(value) => setPaymentFilter(value)}
+          >
+            <SelectTrigger className="min-w-[140px]">
+              <SelectValue placeholder="Filtre seçin" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Hepsi</SelectItem>
+              <SelectItem value="paid">Ödeme alındı</SelectItem>
+              <SelectItem value="unpaid">Ödeme alınmadı</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
