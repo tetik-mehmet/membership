@@ -10,6 +10,8 @@ import {
   Calendar,
   Upload,
   ImageIcon,
+  Camera,
+  Trash2,
 } from "lucide-react";
 import { differenceInDays, startOfDay } from "date-fns";
 import { toast } from "sonner";
@@ -46,7 +48,12 @@ export default function MemberQuickInfoDrawer({
 }) {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
 
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
@@ -55,6 +62,35 @@ export default function MemberQuickInfoDrawer({
       document.body.style.overflow = "";
     };
   }, [open]);
+
+  useEffect(() => {
+    if (!cameraOpen) return;
+    const video = videoRef.current;
+    if (!video) return;
+    setCameraError(null);
+    navigator.mediaDevices
+      .getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      })
+      .then((stream) => {
+        streamRef.current = stream;
+        video.srcObject = stream;
+        return video.play();
+      })
+      .catch((err) => {
+        setCameraError(err?.message || "Kamera açılamadı");
+        setCameraOpen(false);
+        toast.error("Kamera erişilemedi. İzin verdiğinizden emin olun.");
+      });
+    return () => {
+      streamRef.current?.getTracks?.().forEach((t) => t.stop());
+      streamRef.current = null;
+    };
+  }, [cameraOpen]);
 
   if (!membership) return null;
 
@@ -140,6 +176,67 @@ export default function MemberQuickInfoDrawer({
     const file = e.target?.files?.[0];
     if (file) uploadPhoto(file);
     e.target.value = "";
+  };
+
+  const openCamera = () => {
+    setCameraError(null);
+    setCameraOpen(true);
+  };
+
+  const closeCamera = () => {
+    streamRef.current?.getTracks?.().forEach((t) => t.stop());
+    streamRef.current = null;
+    setCameraOpen(false);
+    setCameraError(null);
+  };
+
+  const capturePhoto = () => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth) {
+      toast.error("Video hazır değil.");
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0);
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          toast.error("Fotoğraf alınamadı.");
+          return;
+        }
+        const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
+        closeCamera();
+        uploadPhoto(file);
+      },
+      "image/jpeg",
+      0.9
+    );
+  };
+
+  const deletePhoto = async () => {
+    if (!memberId || !photoUrl) return;
+    if (!confirm("Bu fotoğrafı silmek istediğinize emin misiniz?")) return;
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`/api/members/${memberId}/photo`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Fotoğraf silinemedi.");
+        return;
+      }
+      toast.success("Fotoğraf silindi.");
+      onPhotoUpdate?.(memberId, null);
+    } catch {
+      toast.error("Silme sırasında hata oluştu.");
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   return (
@@ -236,6 +333,17 @@ export default function MemberQuickInfoDrawer({
                   <p className="text-xs text-muted-foreground mt-2">
                     JPEG, PNG veya WebP — en fazla 5 MB
                   </p>
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <button
+                      type="button"
+                      onClick={openCamera}
+                      disabled={uploadLoading}
+                      className="inline-flex items-center justify-center gap-2 w-full py-2.5 rounded-md bg-gradient-to-r from-orange-400 to-amber-500 text-white font-medium shadow-sm hover:from-orange-500 hover:to-amber-600 hover:shadow transition-all disabled:opacity-50 disabled:pointer-events-none"
+                    >
+                      <Camera className="h-5 w-5" />
+                      Fotoğraf çek
+                    </button>
+                  </div>
                 </>
               )}
             </div>
@@ -330,18 +438,73 @@ export default function MemberQuickInfoDrawer({
             </Badge>
           </div>
 
-          {/* Yüklenen fotoğraf (büyük gösterim) */}
+          {/* Yüklenen fotoğraf (büyük gösterim) + sil butonu */}
           {photoUrl && (
-            <div className="pt-2">
+            <div className="pt-2 space-y-3">
               <img
                 src={photoUrl}
                 alt={fullName}
                 className="w-full max-w-[280px] mx-auto rounded-xl object-cover aspect-square border border-border shadow-sm"
               />
+              <button
+                type="button"
+                onClick={deletePhoto}
+                disabled={deleteLoading}
+                className="w-full max-w-[280px] mx-auto flex items-center justify-center gap-2 py-2.5 rounded-md border border-destructive/50 text-destructive font-medium hover:bg-destructive/10 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+              >
+                <Trash2 className="h-4 w-4" />
+                {deleteLoading ? "Siliniyor..." : "Fotoğrafı sil"}
+              </button>
             </div>
           )}
         </div>
       </aside>
+
+      {/* Kamera modalı */}
+      {cameraOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80"
+          onClick={closeCamera}
+        >
+          <div
+            className="relative w-full max-w-lg rounded-xl overflow-hidden bg-background shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative aspect-[4/3] bg-muted">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+              {cameraError && (
+                <div className="absolute inset-0 flex items-center justify-center p-4 text-center text-muted-foreground text-sm">
+                  {cameraError}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3 p-4 border-t border-border">
+              <button
+                type="button"
+                onClick={closeCamera}
+                className="flex-1 py-2.5 rounded-md border border-border bg-background font-medium hover:bg-muted transition-colors"
+              >
+                İptal
+              </button>
+              <button
+                type="button"
+                onClick={capturePhoto}
+                disabled={cameraError || uploadLoading}
+                className="flex-1 py-2.5 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <Camera className="h-5 w-5" />
+                Çek
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

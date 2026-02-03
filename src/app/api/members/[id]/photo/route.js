@@ -96,3 +96,47 @@ export async function POST(request, { params }) {
     );
   }
 }
+
+export async function DELETE(request, { params }) {
+  try {
+    const token = request.cookies.get("auth-token")?.value;
+    if (!token || !verifyToken(token)) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { id: memberId } = await params;
+    const tokenBlob = process.env.BLOB_READ_WRITE_TOKEN;
+
+    await connectDB();
+    const member = await Member.findById(memberId);
+    if (!member) {
+      return NextResponse.json(
+        { success: false, error: "Üye bulunamadı" },
+        { status: 404 }
+      );
+    }
+
+    const oldUrl = member.photoUrl;
+    member.photoUrl = null;
+    await member.save();
+
+    if (oldUrl && oldUrl.startsWith("https://") && tokenBlob) {
+      try {
+        await del(oldUrl, { token: tokenBlob });
+      } catch (_) {
+        // Blob silinemediyse devam et
+      }
+    }
+
+    return NextResponse.json({ success: true, photoUrl: null });
+  } catch (error) {
+    console.error("Photo delete error:", error);
+    return NextResponse.json(
+      { success: false, error: "Silme sırasında hata oluştu" },
+      { status: 500 }
+    );
+  }
+}
