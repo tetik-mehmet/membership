@@ -18,6 +18,7 @@ import {
 import { format, differenceInDays, startOfDay } from "date-fns";
 import { tr } from "date-fns/locale";
 import EditMembershipDialog from "@/components/dashboard/EditMembershipDialog";
+import MemberQuickInfoDrawer from "@/components/dashboard/MemberQuickInfoDrawer";
 
 export default function MembershipTable({
   initialMemberships,
@@ -31,6 +32,7 @@ export default function MembershipTable({
   const [showExpiringSoon, setShowExpiringSoon] = useState(false);
   const [editMembership, setEditMembership] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [quickInfoMembership, setQuickInfoMembership] = useState(null);
 
   const isExpired = (endDate) => new Date(endDate) < new Date();
   const getEffectiveStatus = (m) =>
@@ -202,6 +204,28 @@ export default function MembershipTable({
         onOpenChange={setEditDialogOpen}
         onSuccess={handleEditSuccess}
       />
+      <MemberQuickInfoDrawer
+        open={!!quickInfoMembership}
+        onOpenChange={(open) => !open && setQuickInfoMembership(null)}
+        membership={quickInfoMembership}
+        onPhotoUpdate={(memberId, photoUrl) => {
+          setMemberships((prev) =>
+            prev.map((m) =>
+              m.memberId?._id === memberId
+                ? { ...m, memberId: { ...m.memberId, photoUrl } }
+                : m
+            )
+          );
+          setQuickInfoMembership((prev) =>
+            prev?.memberId?._id === memberId
+              ? {
+                  ...prev,
+                  memberId: { ...prev.memberId, photoUrl },
+                }
+              : prev
+          );
+        }}
+      />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1 max-w-sm w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -291,82 +315,120 @@ export default function MembershipTable({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {group.memberships.map((membership) => (
-                        <TableRow key={membership._id}>
-                          <TableCell className="font-medium">
-                            {membership.memberId?.firstName}{" "}
-                            {membership.memberId?.lastName}
-                          </TableCell>
-                          <TableCell className="hidden sm:table-cell">
-                            {format(
-                              new Date(membership.startDate),
-                              "dd MMM yyyy",
-                              { locale: tr }
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span>
-                                {format(
-                                  new Date(membership.endDate),
-                                  "dd MMM yyyy",
-                                  { locale: tr }
-                                )}
-                              </span>
-                              {isExpiringSoon(membership) && (
+                      {group.memberships.map((membership, rowIndex) => {
+                        const first =
+                          membership.memberId?.firstName?.trim() || "";
+                        const last =
+                          membership.memberId?.lastName?.trim() || "";
+                        const initials =
+                          [first.charAt(0), last.charAt(0)]
+                            .filter(Boolean)
+                            .join("")
+                            .toUpperCase() || "?";
+                        const fullName = `${first} ${last}`.trim() || "—";
+                        const isOdd = rowIndex % 2 === 1;
+                        return (
+                          <TableRow
+                            key={membership._id}
+                            className={`transition-colors duration-150 hover:bg-muted/50 ${
+                              isOdd ? "bg-muted/20 dark:bg-muted/15" : ""
+                            }`}
+                          >
+                            <TableCell>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setQuickInfoMembership(membership)
+                                }
+                                className="flex min-w-0 w-full items-center gap-3 rounded-md text-left transition-colors hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                              >
                                 <span
-                                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200/60 dark:border-amber-700/50"
-                                  title={`${getDaysRemaining(
-                                    membership.endDate
-                                  )} gün kaldı`}
+                                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground"
+                                  aria-hidden
                                 >
-                                  <Clock className="h-3.5 w-3.5 shrink-0" />
-                                  {getDaysRemaining(membership.endDate) === 0
-                                    ? "Bugün bitiyor"
-                                    : getDaysRemaining(membership.endDate) === 1
-                                    ? "1 gün kaldı"
-                                    : `${getDaysRemaining(
-                                        membership.endDate
-                                      )} gün kaldı`}
+                                  {initials}
                                 </span>
+                                <span
+                                  className="min-w-0 truncate font-semibold text-foreground"
+                                  title="Bilgi için tıklayın"
+                                >
+                                  {fullName}
+                                </span>
+                              </button>
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell">
+                              {format(
+                                new Date(membership.startDate),
+                                "dd MMM yyyy",
+                                { locale: tr }
                               )}
-                              {membership.status === "active" &&
-                                isExpired(membership.endDate) && (
-                                  <span className="text-xs text-red-600 dark:text-red-400 font-medium">
-                                    Süre doldu
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span>
+                                  {format(
+                                    new Date(membership.endDate),
+                                    "dd MMM yyyy",
+                                    { locale: tr }
+                                  )}
+                                </span>
+                                {isExpiringSoon(membership) && (
+                                  <span
+                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200/60 dark:border-amber-700/50"
+                                    title={`${getDaysRemaining(
+                                      membership.endDate
+                                    )} gün kaldı`}
+                                  >
+                                    <Clock className="h-3.5 w-3.5 shrink-0" />
+                                    {getDaysRemaining(membership.endDate) === 0
+                                      ? "Bugün bitiyor"
+                                      : getDaysRemaining(membership.endDate) ===
+                                        1
+                                      ? "1 gün kaldı"
+                                      : `${getDaysRemaining(
+                                          membership.endDate
+                                        )} gün kaldı`}
                                   </span>
                                 )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {getStatusBadge(getEffectiveStatus(membership))}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEditClick(membership)}
-                                disabled={loading}
-                                title="Düzenle"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              {getEffectiveStatus(membership) === "active" && (
+                                {membership.status === "active" &&
+                                  isExpired(membership.endDate) && (
+                                    <span className="text-xs text-red-600 dark:text-red-400 font-medium">
+                                      Süre doldu
+                                    </span>
+                                  )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {getStatusBadge(getEffectiveStatus(membership))}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleCancel(membership._id)}
+                                  onClick={() => handleEditClick(membership)}
                                   disabled={loading}
-                                  title="İptal Et"
+                                  title="Düzenle"
                                 >
-                                  <Ban className="h-4 w-4" />
+                                  <Pencil className="h-4 w-4" />
                                 </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                                {getEffectiveStatus(membership) ===
+                                  "active" && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleCancel(membership._id)}
+                                    disabled={loading}
+                                    title="İptal Et"
+                                  >
+                                    <Ban className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>

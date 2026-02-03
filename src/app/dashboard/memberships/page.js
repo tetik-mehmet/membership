@@ -19,7 +19,10 @@ async function getMembershipsData() {
 
   const [memberships, members, packages] = await Promise.all([
     MemberMembership.find()
-      .populate("memberId", "firstName lastName email")
+      .populate(
+        "memberId",
+        "firstName lastName email phone paymentStatus photoUrl"
+      )
       .populate("packageId", "name durationInDays price")
       .sort({ startDate: -1 })
       .lean(),

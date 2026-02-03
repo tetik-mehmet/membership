@@ -25,6 +25,11 @@ const MemberSchema = new mongoose.Schema({
     enum: ["paid", "unpaid"],
     default: "unpaid",
   },
+  photoUrl: {
+    type: String,
+    trim: true,
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
