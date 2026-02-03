@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import Admin from '@/models/Admin';
-import { comparePassword, generateToken, getCookieOptions } from '@/lib/auth';
+import { NextResponse } from "next/server";
+import connectDB from "@/lib/db";
+import Admin from "@/models/Admin";
+import AdminActivityLog from "@/models/AdminActivityLog";
+import { comparePassword, generateToken, getCookieOptions } from "@/lib/auth";
 
 export async function POST(request) {
   try {
@@ -10,7 +11,7 @@ export async function POST(request) {
     // Validate input
     if (!username || !password) {
       return NextResponse.json(
-        { success: false, error: 'Username and password are required' },
+        { success: false, error: "Username and password are required" },
         { status: 400 }
       );
     }
@@ -20,10 +21,10 @@ export async function POST(request) {
 
     // Find admin by username
     const admin = await Admin.findOne({ username: username.toLowerCase() });
-    
+
     if (!admin) {
       return NextResponse.json(
-        { success: false, error: 'Invalid credentials' },
+        { success: false, error: "Invalid credentials" },
         { status: 401 }
       );
     }
@@ -31,17 +32,17 @@ export async function POST(request) {
     // Check if admin is active
     if (!admin.isActive) {
       return NextResponse.json(
-        { success: false, error: 'Account is inactive' },
+        { success: false, error: "Account is inactive" },
         { status: 401 }
       );
     }
 
     // Compare password
     const isPasswordValid = await comparePassword(password, admin.passwordHash);
-    
+
     if (!isPasswordValid) {
       return NextResponse.json(
-        { success: false, error: 'Invalid credentials' },
+        { success: false, error: "Invalid credentials" },
         { status: 401 }
       );
     }
@@ -50,6 +51,14 @@ export async function POST(request) {
     const token = generateToken({
       adminId: admin._id.toString(),
       username: admin.username,
+    });
+
+    // Giriş logunu kaydet
+    await AdminActivityLog.create({
+      adminId: admin._id,
+      username: admin.username,
+      action: "login",
+      timestamp: new Date(),
     });
 
     // Create response with cookie
@@ -65,13 +74,13 @@ export async function POST(request) {
     );
 
     // Set HTTP-only cookie
-    response.cookies.set('auth-token', token, getCookieOptions());
+    response.cookies.set("auth-token", token, getCookieOptions());
 
     return response;
   } catch (error) {
-    console.error('Login error:', error);
+    console.error("Login error:", error);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: false, error: "Internal server error" },
       { status: 500 }
     );
   }

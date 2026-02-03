@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   LayoutDashboard,
   Users,
@@ -15,28 +15,35 @@ import {
   LogOut,
   Menu,
   X,
-} from 'lucide-react';
+  Activity,
+} from "lucide-react";
+
+const ACTIVITY_LOG_VIEWER =
+  process.env.NEXT_PUBLIC_ACTIVITY_LOG_VIEWER_USERNAME?.toLowerCase();
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Üyeler', href: '/dashboard/members', icon: Users },
-  { name: 'Paketler', href: '/dashboard/packages', icon: Package },
-  { name: 'Üyelikler', href: '/dashboard/memberships', icon: CreditCard },
-  { name: 'Harcamalar', href: '/dashboard/expenses', icon: Receipt },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Üyeler", href: "/dashboard/members", icon: Users },
+  { name: "Paketler", href: "/dashboard/packages", icon: Package },
+  { name: "Üyelikler", href: "/dashboard/memberships", icon: CreditCard },
+  { name: "Harcamalar", href: "/dashboard/expenses", icon: Receipt },
 ];
 
-export default function DashboardShell({ children }) {
+export default function DashboardShell({ children, currentUsername }) {
+  const canViewActivityLogs =
+    ACTIVITY_LOG_VIEWER &&
+    currentUsername?.toLowerCase() === ACTIVITY_LOG_VIEWER;
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/login');
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/login");
       router.refresh();
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     }
   };
 
@@ -55,7 +62,7 @@ export default function DashboardShell({ children }) {
         className={`
           fixed top-0 left-0 z-40 h-screen w-64 bg-card border-r border-border
           transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0
         `}
       >
@@ -82,8 +89,8 @@ export default function DashboardShell({ children }) {
             {navigation.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
-              const isExpenses = item.name === 'Harcamalar';
-              const isMemberships = item.name === 'Üyelikler';
+              const isExpenses = item.name === "Harcamalar";
+              const isMemberships = item.name === "Üyelikler";
 
               return (
                 <Link
@@ -93,17 +100,18 @@ export default function DashboardShell({ children }) {
                   className={`
                     flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
                     transition-colors duration-200
-                    ${isExpenses
-                      ? isActive
-                        ? 'bg-orange-400 text-orange-950 dark:bg-orange-500 dark:text-orange-950'
-                        : 'text-muted-foreground hover:bg-orange-400 hover:text-orange-950 dark:hover:bg-orange-500 dark:hover:text-orange-950'
-                      : isMemberships
+                    ${
+                      isExpenses
                         ? isActive
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-muted-foreground hover:bg-[#C9A227] hover:text-[#1a1a0a] dark:hover:bg-[#D4AF37] dark:hover:text-[#1a1a0a]'
+                          ? "bg-orange-400 text-orange-950 dark:bg-orange-500 dark:text-orange-950"
+                          : "text-muted-foreground hover:bg-orange-400 hover:text-orange-950 dark:hover:bg-orange-500 dark:hover:text-orange-950"
+                        : isMemberships
+                        ? isActive
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-[#C9A227] hover:text-[#1a1a0a] dark:hover:bg-[#D4AF37] dark:hover:text-[#1a1a0a]"
                         : isActive
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     }
                   `}
                 >
@@ -112,6 +120,24 @@ export default function DashboardShell({ children }) {
                 </Link>
               );
             })}
+            {canViewActivityLogs && (
+              <Link
+                href="/dashboard/activity-logs"
+                onClick={() => setSidebarOpen(false)}
+                className={`
+                  flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
+                  transition-colors duration-200
+                  ${
+                    pathname === "/dashboard/activity-logs"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  }
+                `}
+              >
+                <Activity className="h-5 w-5 shrink-0" />
+                Admin Logları
+              </Link>
+            )}
           </nav>
 
           {/* Ayarlar + Çıkış Yap - birbirine yakın */}
@@ -122,9 +148,11 @@ export default function DashboardShell({ children }) {
               className={`
                 flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
                 transition-colors duration-200
-                ${pathname === '/dashboard/settings'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'}
+                ${
+                  pathname === "/dashboard/settings"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                }
               `}
             >
               <Settings className="h-5 w-5 shrink-0" />
@@ -164,9 +192,7 @@ export default function DashboardShell({ children }) {
         </header>
 
         {/* Page content */}
-        <main className="p-4 lg:p-8">
-          {children}
-        </main>
+        <main className="p-4 lg:p-8">{children}</main>
       </div>
     </div>
   );
