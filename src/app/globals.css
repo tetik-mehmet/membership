@@ -193,6 +193,23 @@
   animation: membership-blink-soft 1.2s ease-in-out infinite;
 }
 
+/* Üyelik satırı vurgulama – profesyonel yanıp sönen glow */
+@keyframes row-highlight-pulse {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.2);
+    background-color: rgba(59, 130, 246, 0.06);
+  }
+  50% {
+    box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.5);
+    background-color: rgba(59, 130, 246, 0.14);
+  }
+}
+
+.animate-row-highlight {
+  animation: row-highlight-pulse 1.5s ease-in-out infinite;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

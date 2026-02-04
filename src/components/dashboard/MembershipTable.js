@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Ban, Pencil, Clock, Package, Search } from "lucide-react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { Ban, Pencil, Clock, Package, Search, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,20 @@ export default function MembershipTable({
   const [editMembership, setEditMembership] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [quickInfoMembership, setQuickInfoMembership] = useState(null);
+  const [highlightedMembershipIds, setHighlightedMembershipIds] = useState(
+    () => new Set()
+  );
+  const highlightedRowRef = useRef(null);
+
+  // Vurgulu satıra scroll (ilk vurgulanan)
+  useEffect(() => {
+    if (highlightedMembershipIds.size > 0 && highlightedRowRef.current) {
+      highlightedRowRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [highlightedMembershipIds]);
 
   const isExpired = (endDate) => new Date(endDate) < new Date();
   const getEffectiveStatus = (m) =>
@@ -78,6 +92,29 @@ export default function MembershipTable({
 
     return matchesTab && matchesSearch && matchesExpiringSoon;
   });
+
+  // Bitiş tarihi günümüze en yakın olan tüm üyelikler (aynı tarihte bitenler dahil)
+  const closestToTodayMemberships = useMemo(() => {
+    const valid = memberships.filter(
+      (m) => m.status === "active" || getEffectiveStatus(m) === "expired"
+    );
+    if (valid.length === 0) return [];
+    const today = startOfDay(new Date());
+    let minDiff = Infinity;
+    const closest = [];
+    valid.forEach((m) => {
+      const end = startOfDay(new Date(m.endDate));
+      const diff = Math.abs(differenceInDays(end, today));
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest.length = 0;
+        closest.push(m);
+      } else if (diff === minDiff) {
+        closest.push(m);
+      }
+    });
+    return closest;
+  }, [memberships]);
 
   // Paketlere göre grupla (paket sırasına göre)
   const groupedByPackage = useMemo(() => {
@@ -194,6 +231,21 @@ export default function MembershipTable({
   ];
   const getGroupColor = (index) => groupColors[index % groupColors.length];
 
+  const handleClosestMemberClick = () => {
+    if (closestToTodayMemberships.length === 0) return;
+    const ids = new Set(closestToTodayMemberships.map((m) => m._id));
+    const allHighlighted =
+      ids.size > 0 && [...ids].every((id) => highlightedMembershipIds.has(id));
+    if (allHighlighted) {
+      setHighlightedMembershipIds(new Set());
+    } else {
+      const effective = getEffectiveStatus(closestToTodayMemberships[0]);
+      setActiveTab(effective === "expired" ? "expired" : "active");
+      setShowExpiringSoon(false);
+      setHighlightedMembershipIds(ids);
+    }
+  };
+
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
       <EditMembershipDialog
@@ -236,14 +288,41 @@ export default function MembershipTable({
             className="pl-10"
           />
         </div>
-        <Button
-          variant={showExpiringSoon ? "default" : "outline"}
-          onClick={() => setShowExpiringSoon(!showExpiringSoon)}
-          className="w-full sm:w-auto"
-        >
-          <Clock className="h-4 w-4 mr-2" />
-          {showExpiringSoon ? "Tümünü Göster" : "10 Günden Az Kalanlar"}
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button
+            variant={showExpiringSoon ? "default" : "outline"}
+            onClick={() => setShowExpiringSoon(!showExpiringSoon)}
+            className="w-full sm:w-auto"
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            {showExpiringSoon ? "Tümünü Göster" : "10 Günden Az Kalanlar"}
+          </Button>
+          <Button
+            variant={
+              closestToTodayMemberships.length > 0 &&
+              closestToTodayMemberships.every((m) =>
+                highlightedMembershipIds.has(m._id)
+              )
+                ? "default"
+                : "outline"
+            }
+            onClick={handleClosestMemberClick}
+            disabled={closestToTodayMemberships.length === 0}
+            className="w-full sm:w-auto transition-all"
+            title={
+              closestToTodayMemberships.length > 0
+                ? closestToTodayMemberships.every((m) =>
+                    highlightedMembershipIds.has(m._id)
+                  )
+                  ? "Vurguyu kapatmak için tıklayın"
+                  : `${closestToTodayMemberships.length} üye (aynı bitiş tarihi)`
+                : "Üyelik bitimine en yakın üye yok"
+            }
+          >
+            <UserCheck className="h-4 w-4 mr-2" />
+            Üyelik Bitimine En Yakın Üye
+          </Button>
+        </div>
       </div>
       <TabsList>
         <TabsTrigger value="all">
@@ -327,11 +406,24 @@ export default function MembershipTable({
                             .toUpperCase() || "?";
                         const fullName = `${first} ${last}`.trim() || "—";
                         const isOdd = rowIndex % 2 === 1;
+                        const isHighlighted = highlightedMembershipIds.has(
+                          membership._id
+                        );
+                        const isFirstHighlighted =
+                          isHighlighted &&
+                          closestToTodayMemberships[0]?._id === membership._id;
                         return (
                           <TableRow
                             key={membership._id}
+                            ref={isFirstHighlighted ? highlightedRowRef : null}
                             className={`transition-colors duration-150 hover:bg-muted/50 ${
-                              isOdd ? "bg-muted/20 dark:bg-muted/15" : ""
+                              isOdd && !isHighlighted
+                                ? "bg-muted/20 dark:bg-muted/15"
+                                : ""
+                            } ${
+                              isHighlighted
+                                ? "animate-row-highlight relative z-10"
+                                : ""
                             }`}
                           >
                             <TableCell>

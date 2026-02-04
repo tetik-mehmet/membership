@@ -3,7 +3,7 @@ import connectDB from "@/lib/db";
 import Member from "@/models/Member";
 import { verifyToken } from "@/lib/auth";
 
-// PATCH - Update only payment status
+// PATCH - Update only member note
 export async function PATCH(request, { params }) {
   try {
     // Verify authentication
@@ -16,25 +16,17 @@ export async function PATCH(request, { params }) {
     }
 
     const { id } = await params;
-    const { paymentStatus } = await request.json();
+    const { note } = await request.json();
 
-    // Validate paymentStatus
-    if (
-      !paymentStatus ||
-      !["paid", "partial", "unpaid"].includes(paymentStatus)
-    ) {
-      return NextResponse.json(
-        { success: false, error: "Invalid payment status" },
-        { status: 400 }
-      );
-    }
+    // Not metnini güvenli şekilde hazırla
+    const safeNote = typeof note === "string" ? note.trim().slice(0, 1000) : "";
 
     await connectDB();
 
     const member = await Member.findByIdAndUpdate(
       id,
-      { $set: { paymentStatus } },
-      { new: true, runValidators: true }
+      { $set: { note: safeNote } },
+      { new: true, runValidators: false, strict: false }
     );
 
     if (!member) {
@@ -44,9 +36,12 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    return NextResponse.json({ success: true, data: member }, { status: 200 });
+    return NextResponse.json(
+      { success: true, data: { note: safeNote } },
+      { status: 200 }
+    );
   } catch (error) {
-    console.error("Update payment status error:", error);
+    console.error("Update member note error:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }

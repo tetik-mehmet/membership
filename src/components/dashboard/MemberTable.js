@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Pencil, Trash2, Search, Phone, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -35,6 +36,9 @@ export default function MemberTable({ initialMembers }) {
   const [search, setSearch] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("all");
   const [loading, setLoading] = useState(false);
+  const [noteDrafts, setNoteDrafts] = useState({});
+  const [noteSavingId, setNoteSavingId] = useState(null);
+  const [editingNoteId, setEditingNoteId] = useState(null);
   const [editMember, setEditMember] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteMemberId, setDeleteMemberId] = useState(null);
@@ -54,6 +58,8 @@ export default function MemberTable({ initialMembers }) {
         ? true
         : paymentFilter === "paid"
         ? member.paymentStatus === "paid"
+        : paymentFilter === "partial"
+        ? member.paymentStatus === "partial"
         : member.paymentStatus === "unpaid" || !member.paymentStatus;
 
     return matchesSearch && matchesPayment;
@@ -134,15 +140,24 @@ export default function MemberTable({ initialMembers }) {
             m._id === memberId ? { ...m, paymentStatus: newStatus } : m
           )
         );
-        toast.success(
-          newStatus === "paid" ? "Ödeme alındı" : "Ödeme durumu güncellendi",
-          {
-            description:
-              newStatus === "paid"
-                ? "Üyenin ödemesi alındı olarak işaretlendi."
-                : "Üyenin ödemesi alınmadı olarak işaretlendi.",
-          }
-        );
+
+        let title = "Ödeme durumu güncellendi";
+        let description = "Üyenin ödeme durumu güncellendi.";
+
+        if (newStatus === "paid") {
+          title = "Ödeme alındı";
+          description = "Üyenin ödemesi alındı olarak işaretlendi.";
+        } else if (newStatus === "partial") {
+          title = "Kısmi ödeme";
+          description = "Üyenin ödemesi kısmi olarak işaretlendi.";
+        } else if (newStatus === "unpaid") {
+          title = "Ödeme alınmadı";
+          description = "Üyenin ödemesi alınmadı olarak işaretlendi.";
+        }
+
+        toast.success(title, {
+          description,
+        });
       } else {
         toast.error("Güncelleme başarısız", {
           description: data.error || "Lütfen tekrar deneyin.",
@@ -152,6 +167,116 @@ export default function MemberTable({ initialMembers }) {
       toast.error("Bir hata oluştu", { description: "Lütfen tekrar deneyin." });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleNoteChange = (memberId, value) => {
+    setNoteDrafts((prev) => ({
+      ...prev,
+      [memberId]: value,
+    }));
+  };
+
+  const handleNoteSave = async (memberId) => {
+    const draft = noteDrafts[memberId];
+    const member = members.find((m) => m._id === memberId);
+    const currentNote = member?.note || "";
+    const noteToSave =
+      typeof draft === "string"
+        ? draft
+        : typeof currentNote === "string"
+        ? currentNote
+        : "";
+
+    setNoteSavingId(memberId);
+    try {
+      const response = await fetch(`/api/members/${memberId}/note`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: noteToSave }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        const savedNote = noteToSave;
+        setMembers(
+          members.map((m) =>
+            m._id === memberId ? { ...m, note: savedNote } : m
+          )
+        );
+        setNoteDrafts((prev) => ({
+          ...prev,
+          [memberId]: savedNote,
+        }));
+        toast.success("Not kaydedildi", {
+          description: "Üye notu başarıyla güncellendi.",
+        });
+        setEditingNoteId(null);
+      } else {
+        toast.error("Not kaydedilemedi", {
+          description: data.error || "Lütfen tekrar deneyin.",
+        });
+      }
+    } catch (error) {
+      toast.error("Bir hata oluştu", { description: "Lütfen tekrar deneyin." });
+    } finally {
+      setNoteSavingId(null);
+    }
+  };
+
+  const handleNoteEditStart = (memberId) => {
+    const member = members.find((m) => m._id === memberId);
+    const currentNote = member?.note || "";
+    setNoteDrafts((prev) => ({
+      ...prev,
+      [memberId]: currentNote,
+    }));
+    setEditingNoteId(memberId);
+  };
+
+  const handleNoteEditCancel = (memberId) => {
+    setEditingNoteId((prev) => (prev === memberId ? null : prev));
+    setNoteDrafts((prev) => {
+      const next = { ...prev };
+      delete next[memberId];
+      return next;
+    });
+  };
+
+  const handleNoteDelete = async (memberId) => {
+    setNoteSavingId(memberId);
+    try {
+      const response = await fetch(`/api/members/${memberId}/note`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: "" }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMembers(
+          members.map((m) => (m._id === memberId ? { ...m, note: "" } : m))
+        );
+        setNoteDrafts((prev) => {
+          const next = { ...prev };
+          delete next[memberId];
+          return next;
+        });
+        setEditingNoteId(null);
+        toast.success("Not silindi", {
+          description: "Üye notu temizlendi.",
+        });
+      } else {
+        toast.error("Not silinemedi", {
+          description: data.error || "Lütfen tekrar deneyin.",
+        });
+      }
+    } catch (error) {
+      toast.error("Bir hata oluştu", { description: "Lütfen tekrar deneyin." });
+    } finally {
+      setNoteSavingId(null);
     }
   };
 
@@ -213,6 +338,7 @@ export default function MemberTable({ initialMembers }) {
             <SelectContent>
               <SelectItem value="all">Hepsi</SelectItem>
               <SelectItem value="paid">Ödeme alındı</SelectItem>
+              <SelectItem value="partial">Kısmi</SelectItem>
               <SelectItem value="unpaid">Ödeme alınmadı</SelectItem>
             </SelectContent>
           </Select>
@@ -230,10 +356,11 @@ export default function MemberTable({ initialMembers }) {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-sky-100 text-slate-900 dark:bg-[#c4a484] dark:text-slate-900">
                   <TableHead>Ad Soyad</TableHead>
                   <TableHead>Cep Telefonu</TableHead>
                   <TableHead>Ödeme Durumu</TableHead>
+                  <TableHead>Not</TableHead>
                   <TableHead className="text-right">İşlemler</TableHead>
                 </TableRow>
               </TableHeader>
@@ -258,7 +385,7 @@ export default function MemberTable({ initialMembers }) {
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-[260px]">
                         <Button
                           variant={
                             member.paymentStatus === "paid"
@@ -305,6 +432,102 @@ export default function MemberTable({ initialMembers }) {
                           <X className="h-3 w-3 mr-1" />
                           Alınmadı
                         </Button>
+                        <Button
+                          variant={
+                            member.paymentStatus === "partial"
+                              ? "default"
+                              : "outline"
+                          }
+                          size="sm"
+                          onClick={() =>
+                            handlePaymentStatusChange(member._id, "partial")
+                          }
+                          disabled={
+                            loading || member.paymentStatus === "partial"
+                          }
+                          className={`text-xs px-2 py-1 h-7 ${
+                            member.paymentStatus === "partial"
+                              ? "bg-amber-500 hover:bg-amber-600 text-white"
+                              : "hover:bg-amber-100 hover:text-amber-700 hover:border-amber-300"
+                          }`}
+                        >
+                          Kısmi
+                        </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1 min-w-[220px]">
+                        {editingNoteId === member._id ? (
+                          <>
+                            <Textarea
+                              rows={2}
+                              placeholder="Bu üye için not ekleyin..."
+                              value={
+                                noteDrafts[member._id] !== undefined
+                                  ? noteDrafts[member._id]
+                                  : member.note || ""
+                              }
+                              onChange={(e) =>
+                                handleNoteChange(member._id, e.target.value)
+                              }
+                              className="resize-none text-xs leading-snug"
+                            />
+                            <div className="flex justify-end gap-1 flex-wrap">
+                              <Button
+                                type="button"
+                                size="xs"
+                                variant="outline"
+                                disabled={noteSavingId === member._id}
+                                onClick={() => handleNoteSave(member._id)}
+                                className="h-7 px-2 text-[11px]"
+                              >
+                                {noteSavingId === member._id
+                                  ? "Kaydediliyor..."
+                                  : "Kaydet"}
+                              </Button>
+                              <Button
+                                type="button"
+                                size="xs"
+                                variant="ghost"
+                                onClick={() => handleNoteEditCancel(member._id)}
+                                className="h-7 px-2 text-[11px]"
+                              >
+                                Vazgeç
+                              </Button>
+                              <Button
+                                type="button"
+                                size="xs"
+                                variant="destructive"
+                                disabled={noteSavingId === member._id}
+                                onClick={() => handleNoteDelete(member._id)}
+                                className="h-7 px-2 text-[11px]"
+                              >
+                                Sil
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex items-start justify-between gap-2">
+                            <p
+                              className={`flex-1 text-sm whitespace-pre-line min-h-[1.5rem] ${
+                                member.note?.trim()
+                                  ? "text-pink-400 [text-shadow:0_0_10px_rgba(244,114,182,0.9)]"
+                                  : "text-foreground"
+                              }`}
+                            >
+                              {member.note?.trim() || ""}
+                            </p>
+                            <Button
+                              type="button"
+                              size="xs"
+                              variant="outline"
+                              onClick={() => handleNoteEditStart(member._id)}
+                              className="h-7 px-2 text-[11px] whitespace-nowrap"
+                            >
+                              {member.note?.trim() ? "Düzenle" : "Not ekle"}
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">

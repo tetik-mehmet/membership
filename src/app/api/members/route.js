@@ -56,7 +56,7 @@ export async function POST(request) {
       );
     }
 
-    const { firstName, lastName, email, phone } = await request.json();
+    const { firstName, lastName, email, phone, note } = await request.json();
 
     // Validate input
     if (!firstName || !lastName) {
@@ -74,6 +74,7 @@ export async function POST(request) {
       lastName,
       email: email?.trim() || "",
       phone: phone?.trim() || "",
+      note: typeof note === "string" ? note.trim().slice(0, 1000) : "",
     });
 
     return NextResponse.json({ success: true, data: member }, { status: 201 });

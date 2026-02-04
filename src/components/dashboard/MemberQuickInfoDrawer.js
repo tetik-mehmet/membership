@@ -450,9 +450,24 @@ export default function MemberQuickInfoDrawer({
               <span className="text-sm font-medium">Ödeme durumu</span>
             </div>
             <Badge
-              variant={paymentStatus === "paid" ? "default" : "destructive"}
+              variant={
+                paymentStatus === "paid"
+                  ? "default"
+                  : paymentStatus === "partial"
+                  ? "outline"
+                  : "destructive"
+              }
+              className={
+                paymentStatus === "partial"
+                  ? "border-amber-500 text-amber-700 dark:border-amber-400 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40"
+                  : undefined
+              }
             >
-              {paymentStatus === "paid" ? "Ödendi" : "Ödenmedi"}
+              {paymentStatus === "paid"
+                ? "Ödendi"
+                : paymentStatus === "partial"
+                ? "Kısmi"
+                : "Ödenmedi"}
             </Badge>
           </div>
 

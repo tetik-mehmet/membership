@@ -18,24 +18,41 @@ export async function PUT(request, { params }) {
 
     const { id } = await params;
     const requestData = await request.json();
-    const { firstName, lastName, email, phone, paymentStatus } = requestData;
+    const { firstName, lastName, email, phone, paymentStatus, note } =
+      requestData;
 
     await connectDB();
 
-    // Phone alanını her zaman kaydet - boş string olsa bile MongoDB'de alan olsun
-    const trimmedPhone = phone?.trim() || "";
+    // Güncellenecek alanları güvenli şekilde hazırla
+    const updateFields = {};
 
-    // Tüm alanları açıkça $set ile güncelle - phone alanını MUTLAKA dahil et
-    const updateFields = {
-      firstName: firstName?.trim(),
-      lastName: lastName?.trim(),
-      email: email?.trim() || "",
-      phone: trimmedPhone, // Boş string olsa bile kaydet
-    };
+    if (typeof firstName === "string") {
+      updateFields.firstName = firstName.trim();
+    }
+
+    if (typeof lastName === "string") {
+      updateFields.lastName = lastName.trim();
+    }
+
+    if (email !== undefined) {
+      updateFields.email = (email || "").toString().trim();
+    }
+
+    // Phone alanını her zaman kaydetmek için: request içinde phone varsa mutlaka set et
+    if (phone !== undefined) {
+      const trimmedPhone = phone?.toString().trim() || "";
+      updateFields.phone = trimmedPhone;
+    }
 
     // paymentStatus varsa ekle
     if (paymentStatus !== undefined) {
       updateFields.paymentStatus = paymentStatus;
+    }
+
+    // note alanını ekle (opsiyonel)
+    if (note !== undefined) {
+      updateFields.note =
+        typeof note === "string" ? note.trim().slice(0, 1000) : "";
     }
 
     const updateQuery = {
@@ -55,18 +72,7 @@ export async function PUT(request, { params }) {
       );
     }
 
-    // MongoDB'den dönen veriyi JSON'a çevirirken phone alanının dahil edildiğinden emin ol
-    const memberData = member.toObject ? member.toObject() : member;
-
-    // Phone alanının kesinlikle dahil edildiğinden emin ol
-    if (!memberData.phone && trimmedPhone) {
-      memberData.phone = trimmedPhone;
-    }
-
-    return NextResponse.json(
-      { success: true, data: memberData },
-      { status: 200 }
-    );
+    return NextResponse.json({ success: true, data: member }, { status: 200 });
   } catch (error) {
     console.error("Update member error:", error);
     return NextResponse.json(
