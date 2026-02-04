@@ -135,15 +135,19 @@
   }
 }
 @keyframes login-glow {
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(212, 175, 55, 0.15), 0 0 40px rgba(212, 175, 55, 0.08);
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.15),
+      0 0 40px rgba(212, 175, 55, 0.08);
   }
   50% {
-    box-shadow: 0 0 30px rgba(212, 175, 55, 0.25), 0 0 60px rgba(212, 175, 55, 0.12);
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.25),
+      0 0 60px rgba(212, 175, 55, 0.12);
   }
 }
 @keyframes login-float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -168,6 +172,25 @@
 }
 .animate-login-float {
   animation: login-float 4s ease-in-out infinite;
+}
+
+/* Üyelik bitiş uyarısı – yanıp sönen etiket */
+@keyframes membership-blink-soft {
+  0%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.35);
+  }
+  50% {
+    opacity: 0.45;
+    transform: translateY(-1px);
+    box-shadow: 0 0 12px 2px rgba(245, 158, 11, 0.45);
+  }
+}
+
+.animate-membership-blink-soft {
+  animation: membership-blink-soft 1.2s ease-in-out infinite;
 }
 
 @layer base {

@@ -232,7 +232,6 @@ export default function MemberTable({ initialMembers }) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Ad Soyad</TableHead>
-                  <TableHead>E-posta</TableHead>
                   <TableHead>Cep Telefonu</TableHead>
                   <TableHead>Ödeme Durumu</TableHead>
                   <TableHead className="text-right">İşlemler</TableHead>
@@ -244,7 +243,6 @@ export default function MemberTable({ initialMembers }) {
                     <TableCell className="font-medium">
                       {member.firstName} {member.lastName}
                     </TableCell>
-                    <TableCell>{member.email || "-"}</TableCell>
                     <TableCell>
                       {member.phone ? (
                         <a

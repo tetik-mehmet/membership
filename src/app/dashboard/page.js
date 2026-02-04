@@ -47,6 +47,7 @@ async function getDashboardStats() {
 
   const startOfMonth = getStartOfMonth();
   const startOfNextMonth = getStartOfNextMonth();
+  const now = new Date();
 
   // Toplam kazanç: Üyelikler sayfasındaki gibi - tüm üyeliklerin paket fiyatları toplamı
   // Aylık kazanç: Başlangıç tarihi (startDate) bu ay içinde olan üyeliklerin paket fiyatları toplamı
@@ -62,8 +63,15 @@ async function getDashboardStats() {
   ] = await Promise.all([
     Member.countDocuments(),
     MembershipPackage.countDocuments({ isActive: true }),
-    MemberMembership.countDocuments({ status: "active" }),
-    MemberMembership.countDocuments({ status: "expired" }),
+    // Etkin üyelik: statüsü active OLAN ve bitiş tarihi bugünden SONRA veya BUGÜN olanlar
+    MemberMembership.countDocuments({
+      status: "active",
+      endDate: { $gte: now },
+    }),
+    // Süresi dolan: statüsü expired OLANLAR + statüsü active olup bitiş tarihi GEÇMİŞ olanlar
+    MemberMembership.countDocuments({
+      $or: [{ status: "expired" }, { status: "active", endDate: { $lt: now } }],
+    }),
     MemberMembership.aggregate([
       {
         $lookup: {

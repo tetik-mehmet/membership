@@ -119,6 +119,21 @@ export default function MemberQuickInfoDrawer({
   const remainingPercent = isActive
     ? Math.min(100, Math.max(0, (daysRemaining / totalDays) * 100))
     : 0;
+
+  // Kalan süre yüzdesine göre renk (ilk yeşil → turuncu → kırmızı)
+  const remainingBarColorClass = (() => {
+    if (!isActive) return "bg-muted";
+    if (remainingPercent > 75) {
+      // Sürenin büyük kısmı duruyor: güvenli, yeşil
+      return "bg-emerald-500";
+    }
+    if (remainingPercent > 40) {
+      // Orta seviye: uyarı, turuncu
+      return "bg-orange-500";
+    }
+    // Çok az kaldı: kritik, kırmızı
+    return "bg-red-500";
+  })();
   const whatsappHref = toWhatsAppHref(phone);
 
   const validateFile = (file) => {
@@ -380,7 +395,10 @@ export default function MemberQuickInfoDrawer({
                 </p>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full bg-primary transition-all duration-500"
+                    className={cn(
+                      "h-full rounded-full transition-all duration-500",
+                      remainingBarColorClass
+                    )}
                     style={{ width: `${remainingPercent}%` }}
                   />
                 </div>

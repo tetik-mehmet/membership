@@ -374,7 +374,7 @@ export default function MembershipTable({
                                 </span>
                                 {isExpiringSoon(membership) && (
                                   <span
-                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200/60 dark:border-amber-700/50"
+                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200/60 dark:border-amber-700/50 animate-membership-blink-soft"
                                     title={`${getDaysRemaining(
                                       membership.endDate
                                     )} gün kaldı`}
