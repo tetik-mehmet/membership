@@ -5,7 +5,8 @@ import { verifyToken } from "@/lib/auth";
 
 /**
  * GET - Admin giriş/çıkış loglarını döner.
- * Sadece ACTIVITY_LOG_VIEWER_USERNAME ile eşleşen kullanıcı erişebilir.
+ * Sadece NEXT_PUBLIC_ACTIVITY_LOG_VIEWER_USERNAME'de listelenen kullanıcılar erişebilir.
+ * Virgülle ayrılmış birden fazla kullanıcı adı desteklenir (örn: mehmet,ahmet).
  */
 export async function GET(request) {
   try {
@@ -25,12 +26,15 @@ export async function GET(request) {
       );
     }
 
-    const allowedUsername =
-      process.env.NEXT_PUBLIC_ACTIVITY_LOG_VIEWER_USERNAME?.toLowerCase();
-    if (
-      !allowedUsername ||
-      decoded.username?.toLowerCase() !== allowedUsername
-    ) {
+    const allowedUsernames =
+      process.env.NEXT_PUBLIC_ACTIVITY_LOG_VIEWER_USERNAME?.toLowerCase()
+        ?.split(",")
+        ?.map((u) => u.trim())
+        ?.filter(Boolean) || [];
+    const userAllowed = allowedUsernames.includes(
+      decoded.username?.toLowerCase()
+    );
+    if (!userAllowed) {
       return NextResponse.json(
         { success: false, error: "Bu sayfayı görüntüleme yetkiniz yok" },
         { status: 403 }

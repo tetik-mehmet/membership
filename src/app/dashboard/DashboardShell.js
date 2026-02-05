@@ -18,8 +18,11 @@ import {
   Activity,
 } from "lucide-react";
 
-const ACTIVITY_LOG_VIEWER =
-  process.env.NEXT_PUBLIC_ACTIVITY_LOG_VIEWER_USERNAME?.toLowerCase();
+const ACTIVITY_LOG_VIEWERS =
+  process.env.NEXT_PUBLIC_ACTIVITY_LOG_VIEWER_USERNAME?.toLowerCase()
+    ?.split(",")
+    ?.map((u) => u.trim())
+    ?.filter(Boolean) || [];
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -31,8 +34,8 @@ const navigation = [
 
 export default function DashboardShell({ children, currentUsername }) {
   const canViewActivityLogs =
-    ACTIVITY_LOG_VIEWER &&
-    currentUsername?.toLowerCase() === ACTIVITY_LOG_VIEWER;
+    currentUsername?.toLowerCase() &&
+    ACTIVITY_LOG_VIEWERS.includes(currentUsername.toLowerCase());
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);

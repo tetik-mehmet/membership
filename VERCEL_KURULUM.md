@@ -15,9 +15,9 @@ Projeyi Vercel'e deploy ettikten sonra, admin aktivite loglarının çalışmas�
 1. Sol menüden **Environment Variables** bölümüne tıklayın
 2. Aşağıdaki değişkeni ekleyin:
 
-| Name                                       | Value                                                            | Ortam                            |
-| ------------------------------------------ | ---------------------------------------------------------------- | -------------------------------- |
-| `NEXT_PUBLIC_ACTIVITY_LOG_VIEWER_USERNAME` | Logları görmesini istediğiniz admin kullanıcı adı (örn: `admin`) | Production, Preview, Development |
+| Name                                       | Value                                                                                                      | Ortam                            |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `NEXT_PUBLIC_ACTIVITY_LOG_VIEWER_USERNAME` | Logları görmesini istediğiniz admin kullanıcı adları, virgülle ayrılmış (örn: `admin` veya `mehmet,ahmet`) | Production, Preview, Development |
 
 3. **Add** veya **Save** butonuna basın
 
