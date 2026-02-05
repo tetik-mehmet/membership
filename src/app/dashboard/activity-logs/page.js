@@ -32,6 +32,13 @@ import {
   RefreshCw,
   ChevronDown,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function formatDate(dateStr) {
   const d = new Date(dateStr);
@@ -47,6 +54,7 @@ export default function ActivityLogsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionFilter, setActionFilter] = useState("all");
+  const [adminFilter, setAdminFilter] = useState("all");
   const [expandedNoteLogId, setExpandedNoteLogId] = useState(null);
 
   useEffect(() => {
@@ -106,10 +114,17 @@ export default function ActivityLogsPage() {
     );
   }
 
-  const filteredLogs =
-    actionFilter === "all"
-      ? logs
-      : logs.filter((log) => log.action === actionFilter);
+  const uniqueAdmins = Array.from(
+    new Set(logs.map((log) => log.username).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b, "tr-TR"));
+
+  const filteredLogs = logs.filter((log) => {
+    const actionMatch =
+      actionFilter === "all" ? true : log.action === actionFilter;
+    const adminMatch =
+      adminFilter === "all" ? true : log.username === adminFilter;
+    return actionMatch && adminMatch;
+  });
 
   return (
     <div className="space-y-6">
@@ -124,39 +139,95 @@ export default function ActivityLogsPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Aktivite Kayıtları
-          </CardTitle>
-          <CardDescription>Son 500 kayıt gösterilmektedir</CardDescription>
+        <CardHeader className="border-b border-border/60 bg-muted/40">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Activity className="h-4 w-4" />
+                </span>
+                <span>Aktivite Kayıtları</span>
+              </CardTitle>
+              <CardDescription className="mt-1">
+                Son 500 kayıt görüntüleniyor, filtreleyerek daraltabilirsiniz.
+              </CardDescription>
+            </div>
+            <div className="flex flex-col gap-2 text-sm text-muted-foreground sm:text-right">
+              <span className="uppercase tracking-wide text-[11px] font-semibold text-muted-foreground/80">
+                Toplam Kayıt
+              </span>
+              <span className="text-lg font-semibold text-foreground">
+                {filteredLogs.length.toLocaleString("tr-TR")}
+              </span>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-            <p className="text-sm text-muted-foreground">
-              Toplam{" "}
-              <span className="font-medium text-foreground">
-                {filteredLogs.length}
-              </span>{" "}
-              kayıt listeleniyor
-            </p>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">İşlem türü:</span>
-              <select
-                className="h-9 rounded-md border bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                value={actionFilter}
-                onChange={(e) => setActionFilter(e.target.value)}
-              >
-                <option value="all">Tümü</option>
-                <option value="login">Giriş</option>
-                <option value="logout">Çıkış</option>
-                <option value="member_created">Üye Ekleme</option>
-                <option value="member_deleted">Üye Silme</option>
-                <option value="member_note_updated">Üye Notu Güncelleme</option>
-                <option value="membership_created">Üyelik Ekleme</option>
-                <option value="membership_renewed">Üyelik Yenileme</option>
-                <option value="membership_deleted">Üyelik Silme</option>
-              </select>
+        <CardContent className="pt-4 space-y-4">
+          <div className="rounded-xl border border-border/60 bg-gradient-to-r from-background via-background to-background/80 p-3 sm:p-4 shadow-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Filtreler
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  İşlem türüne ve işlemi yapan admine göre listeyi daraltın.
+                </span>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
+                <div className="flex flex-col gap-1 min-w-[200px]">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    İşlem türü
+                  </label>
+                  <Select
+                    value={actionFilter}
+                    onValueChange={(value) => setActionFilter(value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="İşlem türü seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tümü</SelectItem>
+                      <SelectItem value="login">Giriş</SelectItem>
+                      <SelectItem value="logout">Çıkış</SelectItem>
+                      <SelectItem value="member_created">Üye Ekleme</SelectItem>
+                      <SelectItem value="member_deleted">Üye Silme</SelectItem>
+                      <SelectItem value="member_note_updated">
+                        Üye Notu Güncelleme
+                      </SelectItem>
+                      <SelectItem value="membership_created">
+                        Üyelik Ekleme
+                      </SelectItem>
+                      <SelectItem value="membership_renewed">
+                        Üyelik Yenileme
+                      </SelectItem>
+                      <SelectItem value="membership_deleted">
+                        Üyelik Silme
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1 min-w-[200px]">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Admin
+                  </label>
+                  <Select
+                    value={adminFilter}
+                    onValueChange={(value) => setAdminFilter(value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Admin seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tümü</SelectItem>
+                      {uniqueAdmins.map((admin) => (
+                        <SelectItem key={admin} value={admin}>
+                          {admin}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
           </div>
           {filteredLogs.length === 0 ? (

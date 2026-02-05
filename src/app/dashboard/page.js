@@ -325,33 +325,6 @@ export default async function DashboardPage() {
           </div>
         </CardContent>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Hızlı Başlangıç</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <h3 className="font-semibold text-foreground">1. Üye Ekle</h3>
-            <p className="text-sm text-muted-foreground">
-              Yeni üyeleri sisteme eklemek için Üyeler sayfasını ziyaret edin.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <h3 className="font-semibold text-foreground">2. Paket Tanımla</h3>
-            <p className="text-sm text-muted-foreground">
-              Üyelik paketlerini oluşturun ve fiyatlandırın (Aylık, 5 Aylık,
-              Yıllık).
-            </p>
-          </div>
-          <div className="space-y-2">
-            <h3 className="font-semibold text-foreground">3. Üyelik Ata</h3>
-            <p className="text-sm text-muted-foreground">
-              Üyelere paket atayarak üyeliklerini aktif edin.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
