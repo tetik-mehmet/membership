@@ -1,19 +1,19 @@
-import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import MemberMembership from '@/models/MemberMembership';
-import MembershipPackage from '@/models/MembershipPackage';
-import EarningsRecord from '@/models/EarningsRecord';
-import { verifyToken } from '@/lib/auth';
-import { addDays } from 'date-fns';
+import { NextResponse } from "next/server";
+import connectDB from "@/lib/db";
+import MemberMembership from "@/models/MemberMembership";
+import MembershipPackage from "@/models/MembershipPackage";
+import EarningsRecord from "@/models/EarningsRecord";
+import { verifyToken } from "@/lib/auth";
+import { addDays } from "date-fns";
 
 // GET - List memberships with filters
 export async function GET(request) {
   try {
     // Verify authentication
-    const token = request.cookies.get('auth-token')?.value;
+    const token = request.cookies.get("auth-token")?.value;
     if (!token || !verifyToken(token)) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: "Unauthorized" },
         { status: 401 }
       );
     }
@@ -21,16 +21,16 @@ export async function GET(request) {
     await connectDB();
 
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
-    const memberId = searchParams.get('memberId');
+    const status = searchParams.get("status");
+    const memberId = searchParams.get("memberId");
 
     let query = {};
     if (status) query.status = status;
     if (memberId) query.memberId = memberId;
 
     const memberships = await MemberMembership.find(query)
-      .populate('memberId', 'firstName lastName email')
-      .populate('packageId', 'name durationInDays price')
+      .populate("memberId", "firstName lastName email")
+      .populate("packageId", "name durationInDays price")
       .sort({ createdAt: -1 });
 
     return NextResponse.json(
@@ -38,9 +38,9 @@ export async function GET(request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('Get memberships error:', error);
+    console.error("Get memberships error:", error);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: false, error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -50,10 +50,10 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     // Verify authentication
-    const token = request.cookies.get('auth-token')?.value;
+    const token = request.cookies.get("auth-token")?.value;
     if (!token || !verifyToken(token)) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: "Unauthorized" },
         { status: 401 }
       );
     }
@@ -63,7 +63,10 @@ export async function POST(request) {
     // Validate input
     if (!memberId || !packageId || !startDate) {
       return NextResponse.json(
-        { success: false, error: 'Member ID, package ID, and start date are required' },
+        {
+          success: false,
+          error: "Member ID, package ID, and start date are required",
+        },
         { status: 400 }
       );
     }
@@ -73,12 +76,12 @@ export async function POST(request) {
     // Check if member already has an active membership
     const existingMembership = await MemberMembership.findOne({
       memberId,
-      status: 'active',
+      status: "active",
     });
 
     if (existingMembership) {
       return NextResponse.json(
-        { success: false, error: 'Member already has an active membership' },
+        { success: false, error: "Member already has an active membership" },
         { status: 400 }
       );
     }
@@ -87,14 +90,14 @@ export async function POST(request) {
     const packageData = await MembershipPackage.findById(packageId);
     if (!packageData) {
       return NextResponse.json(
-        { success: false, error: 'Package not found' },
+        { success: false, error: "Package not found" },
         { status: 404 }
       );
     }
 
     if (!packageData.isActive) {
       return NextResponse.json(
-        { success: false, error: 'Package is not active' },
+        { success: false, error: "Package is not active" },
         { status: 400 }
       );
     }
@@ -109,7 +112,7 @@ export async function POST(request) {
       packageId,
       startDate: start,
       endDate,
-      status: 'active',
+      status: "active",
     });
 
     // Kazanç kaydı: üye silinse bile bu tutar düşmez
@@ -119,17 +122,17 @@ export async function POST(request) {
     });
 
     // Populate references before returning
-    await membership.populate('memberId', 'firstName lastName email');
-    await membership.populate('packageId', 'name durationInDays price');
+    await membership.populate("memberId", "firstName lastName email");
+    await membership.populate("packageId", "name durationInDays price");
 
     return NextResponse.json(
       { success: true, data: membership },
       { status: 201 }
     );
   } catch (error) {
-    console.error('Create membership error:', error);
+    console.error("Create membership error:", error);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: false, error: "Internal server error" },
       { status: 500 }
     );
   }

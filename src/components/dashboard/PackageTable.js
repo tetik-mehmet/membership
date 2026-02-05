@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -12,8 +12,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import EditPackageDialog from '@/components/dashboard/EditPackageDialog';
+} from "@/components/ui/table";
+import EditPackageDialog from "@/components/dashboard/EditPackageDialog";
 
 export default function PackageTable({ initialPackages }) {
   const [packages, setPackages] = useState(initialPackages);
@@ -22,14 +22,14 @@ export default function PackageTable({ initialPackages }) {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const handleDeactivate = async (packageId) => {
-    if (!confirm('Bu paketi deaktif etmek istediğinizden emin misiniz?')) {
+    if (!confirm("Bu paketi deaktif etmek istediğinizden emin misiniz?")) {
       return;
     }
 
     setLoading(true);
     try {
       const response = await fetch(`/api/packages/${packageId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       const data = await response.json();
@@ -40,12 +40,16 @@ export default function PackageTable({ initialPackages }) {
             pkg._id === packageId ? { ...pkg, isActive: false } : pkg
           )
         );
-        toast.success('Paket deaktif edildi', { description: 'Paket artık listede görünmeyecek.' });
+        toast.success("Paket deaktif edildi", {
+          description: "Paket artık listede görünmeyecek.",
+        });
       } else {
-        toast.error('Paket deaktif edilemedi', { description: data.error || 'Lütfen tekrar deneyin.' });
+        toast.error("Paket deaktif edilemedi", {
+          description: data.error || "Lütfen tekrar deneyin.",
+        });
       }
     } catch (error) {
-      toast.error('Bir hata oluştu', { description: 'Lütfen tekrar deneyin.' });
+      toast.error("Bir hata oluştu", { description: "Lütfen tekrar deneyin." });
     } finally {
       setLoading(false);
     }
@@ -57,7 +61,9 @@ export default function PackageTable({ initialPackages }) {
   };
 
   const handleEditSuccess = (updatedPackage) => {
-    setPackages(packages.map((p) => (p._id === updatedPackage._id ? updatedPackage : p)));
+    setPackages(
+      packages.map((p) => (p._id === updatedPackage._id ? updatedPackage : p))
+    );
   };
 
   return (
@@ -76,7 +82,7 @@ export default function PackageTable({ initialPackages }) {
         <div className="border rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-[#6DC3BB]">
                 <TableRow>
                   <TableHead>Paket Adı</TableHead>
                   <TableHead>Süre (Gün)</TableHead>
@@ -90,10 +96,10 @@ export default function PackageTable({ initialPackages }) {
                   <TableRow key={pkg._id}>
                     <TableCell className="font-medium">{pkg.name}</TableCell>
                     <TableCell>{pkg.durationInDays} gün</TableCell>
-                    <TableCell>{pkg.price.toLocaleString('tr-TR')} ₺</TableCell>
+                    <TableCell>{pkg.price.toLocaleString("tr-TR")} ₺</TableCell>
                     <TableCell>
-                      <Badge variant={pkg.isActive ? 'default' : 'secondary'}>
-                        {pkg.isActive ? 'Aktif' : 'Pasif'}
+                      <Badge variant={pkg.isActive ? "default" : "secondary"}>
+                        {pkg.isActive ? "Aktif" : "Pasif"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
