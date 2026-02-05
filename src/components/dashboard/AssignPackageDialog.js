@@ -23,9 +23,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
-export default function AssignPackageDialog({ members = [], packages = [] }) {
+export default function AssignPackageDialog({
+  members = [],
+  packages = [],
+  defaultOpen = false,
+}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const clearedUrlRef = useRef(false);
+  const [open, setOpen] = useState(!!defaultOpen);
   const [loading, setLoading] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
   const [memberSelectOpen, setMemberSelectOpen] = useState(false);
@@ -36,6 +41,16 @@ export default function AssignPackageDialog({ members = [], packages = [] }) {
     packageId: "",
     startDate: new Date().toISOString().split("T")[0],
   });
+
+  useEffect(() => {
+    if (defaultOpen && open && !clearedUrlRef.current) {
+      clearedUrlRef.current = true;
+      const url = new URL(window.location.href);
+      url.searchParams.delete("open");
+      const clean = url.pathname + (url.search ? url.search : "");
+      window.history.replaceState({}, "", clean);
+    }
+  }, [defaultOpen, open]);
 
   const filteredMembers = (members || []).filter((member) => {
     const q = memberSearch.trim().toLowerCase();

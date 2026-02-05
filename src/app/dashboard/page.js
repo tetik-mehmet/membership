@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Users,
   CreditCard,
@@ -9,7 +10,10 @@ import {
   TrendingUp,
   Receipt,
   PiggyBank,
+  UserPlus,
 } from "lucide-react";
+import { format } from "date-fns";
+import { tr } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import MembershipDistributionChart from "@/components/dashboard/MembershipDistributionChart";
 import DashboardLottie from "@/components/dashboard/DashboardLottie";
@@ -21,6 +25,14 @@ import Expense from "@/models/Expense";
 import { verifyToken } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Dashboard | Üyelik Yönetimi" };
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return "Günaydın";
+  if (hour >= 12 && hour < 18) return "İyi günler";
+  return "İyi akşamlar";
+}
 
 async function getUsername() {
   const cookieStore = await cookies();
@@ -161,6 +173,8 @@ export default async function DashboardPage() {
       icon: Users,
       color: "text-blue-600 dark:text-blue-400",
       bgColor: "bg-blue-50 dark:bg-blue-950/40",
+      href: "/dashboard/members",
+      ariaLabel: "Üyelere git",
     },
     {
       title: "Aktif Üyelik",
@@ -168,6 +182,8 @@ export default async function DashboardPage() {
       icon: CreditCard,
       color: "text-green-600 dark:text-green-400",
       bgColor: "bg-green-50 dark:bg-green-950/40",
+      href: "/dashboard/memberships?tab=active",
+      ariaLabel: "Aktif üyeliklere git",
     },
     {
       title: "Süresi Dolan",
@@ -175,6 +191,8 @@ export default async function DashboardPage() {
       icon: AlertCircle,
       color: "text-orange-600 dark:text-orange-400",
       bgColor: "bg-orange-50 dark:bg-orange-950/40",
+      href: "/dashboard/memberships?tab=expired",
+      ariaLabel: "Süresi dolan üyeliklere git",
     },
     {
       title: "Aktif Paket",
@@ -182,55 +200,131 @@ export default async function DashboardPage() {
       icon: Package,
       color: "text-purple-600 dark:text-purple-400",
       bgColor: "bg-purple-50 dark:bg-purple-950/40",
+      href: "/dashboard/packages",
+      ariaLabel: "Paketlere git",
     },
   ];
 
+  const greeting = getGreeting();
+  const todayFormatted = format(new Date(), "d MMMM yyyy, EEEE", {
+    locale: tr,
+  });
+
   return (
     <div className="space-y-8">
-      <header className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
-        <div className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl overflow-hidden bg-muted/50 dark:bg-muted/20 border border-border/50 shadow-sm">
-          <Image
-            src="/logo_montana.png"
-            alt="Montana"
-            fill
-            className="object-contain p-1.5"
-            sizes="(max-width: 640px) 64px, 80px"
-            priority
-          />
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 p-4 sm:p-6 rounded-xl bg-muted/30 dark:bg-muted/20 border border-border/50">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+          <div className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl overflow-hidden bg-muted/50 dark:bg-muted/20 border border-border/50 shadow-sm">
+            <Image
+              src="/logo_montana.png"
+              alt="Montana"
+              fill
+              className="object-contain p-1.5"
+              sizes="(max-width: 640px) 64px, 80px"
+              priority
+            />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+              {greeting}, {displayName}
+            </h1>
+            <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
+              Üyelik yönetim sisteminize hoş geldiniz
+            </p>
+          </div>
         </div>
-        <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-            Hoş geldin, {displayName}
-          </h1>
-          <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
-            Üyelik yönetim sisteminize hoş geldiniz
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground shrink-0">
+          {todayFormatted}
+        </p>
       </header>
 
+      <h2 className="text-lg font-semibold text-foreground">Genel Bakış</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         {cards.map((card) => {
           const Icon = card.icon;
           return (
-            <Card key={card.title}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {card.title}
-                </CardTitle>
-                <div className={`${card.bgColor} p-2 rounded-lg`}>
-                  <Icon className={`h-5 w-5 ${card.color}`} />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-foreground">
-                  {card.value}
-                </div>
-              </CardContent>
-            </Card>
+            <Link
+              key={card.title}
+              href={card.href}
+              aria-label={card.ariaLabel}
+              className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl"
+            >
+              <Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02] h-full">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    {card.title}
+                  </CardTitle>
+                  <div className={`${card.bgColor} p-2 rounded-lg`}>
+                    <Icon className={`h-5 w-5 ${card.color}`} />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-foreground">
+                    {card.value}
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           );
         })}
       </div>
 
+      {stats.expiredMemberships > 0 && (
+        <div
+          className="flex flex-wrap items-center gap-3 p-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200"
+          role="alert"
+        >
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          <p className="text-sm font-medium min-w-0">
+            {stats.expiredMemberships} üyeliğin süresi doldu. Yenilemek için
+            üyelikler sayfasına gidin.
+          </p>
+          <Link
+            href="/dashboard/memberships"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold underline underline-offset-2 hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+          >
+            Üyelikler
+          </Link>
+        </div>
+      )}
+
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold text-foreground">
+          Hızlı Eylemler
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <Link
+            href="/dashboard/members?open=add-member"
+            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm font-medium hover:bg-muted/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <UserPlus className="h-5 w-5 shrink-0" />
+            Yeni üye
+          </Link>
+          <Link
+            href="/dashboard/packages?open=add-package"
+            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm font-medium hover:bg-muted/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Package className="h-5 w-5 shrink-0" />
+            Yeni paket
+          </Link>
+          <Link
+            href="/dashboard/expenses?open=add-expense"
+            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm font-medium hover:bg-muted/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Receipt className="h-5 w-5 shrink-0" />
+            Harcama ekle
+          </Link>
+          <Link
+            href="/dashboard/memberships?open=assign"
+            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm font-medium hover:bg-muted/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <CreditCard className="h-5 w-5 shrink-0" />
+            Üyelik ata
+          </Link>
+        </div>
+      </section>
+
+      <h2 className="text-lg font-semibold text-foreground">Üyelik Dağılımı</h2>
       <Card className="overflow-hidden">
         <CardHeader className="border-b border-border/50 bg-muted/30 dark:bg-muted/20">
           <CardTitle className="flex items-center gap-2 text-foreground">
@@ -243,7 +337,7 @@ export default async function DashboardPage() {
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
           <div className="flex flex-col lg:flex-row items-center gap-4 lg:gap-4">
-            <div className="w-full min-w-0 flex-1 max-w-xl">
+            <div className="w-full min-w-0 flex-1 max-w-xl min-h-[240px] sm:min-h-[280px]">
               <MembershipDistributionChart
                 data={stats.membershipDistribution}
               />
@@ -255,6 +349,7 @@ export default async function DashboardPage() {
         </CardContent>
       </Card>
 
+      <h2 className="text-lg font-semibold text-foreground">Finansal Özet</h2>
       <Card className="overflow-hidden">
         <CardHeader className="bg-emerald-50 dark:bg-emerald-950/40 border-b border-emerald-100 dark:border-emerald-900/50">
           <CardTitle className="flex items-center gap-2 text-emerald-800 dark:text-emerald-200">
@@ -320,6 +415,16 @@ export default async function DashboardPage() {
                 >
                   {stats.monthlyProfit.toLocaleString("tr-TR")} ₺
                 </p>
+                {stats.monthlyEarnings > 0 && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Kar marjı{" "}
+                    {(
+                      (stats.monthlyProfit / stats.monthlyEarnings) *
+                      100
+                    ).toFixed(1)}
+                    %
+                  </p>
+                )}
               </div>
             </div>
           </div>

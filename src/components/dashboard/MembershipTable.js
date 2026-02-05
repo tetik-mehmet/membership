@@ -24,10 +24,20 @@ export default function MembershipTable({
   initialMemberships,
   members,
   packages,
+  initialTab = "all",
 }) {
   const [memberships, setMemberships] = useState(initialMemberships);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("all");
+  const validTabs = ["all", "active", "expired"];
+  const [activeTab, setActiveTab] = useState(
+    validTabs.includes(initialTab) ? initialTab : "all"
+  );
+
+  useEffect(() => {
+    if (validTabs.includes(initialTab)) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [search, setSearch] = useState("");
   const [showExpiringSoon, setShowExpiringSoon] = useState(false);
   const [editMembership, setEditMembership] = useState(null);

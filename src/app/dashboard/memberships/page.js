@@ -39,8 +39,18 @@ async function getMembershipsData() {
   };
 }
 
-export default async function MembershipsPage() {
+const VALID_TABS = ["all", "active", "expired"];
+
+export default async function MembershipsPage({ searchParams }) {
   const { memberships, members, packages } = await getMembershipsData();
+  const resolved =
+    searchParams && typeof searchParams.then === "function"
+      ? await searchParams
+      : searchParams || {};
+  const tabParam = resolved?.tab;
+  const initialTab =
+    tabParam && VALID_TABS.includes(tabParam) ? tabParam : "all";
+  const openAssign = resolved?.open === "assign";
 
   return (
     <div className="space-y-6">
@@ -58,6 +68,7 @@ export default async function MembershipsPage() {
             <AssignPackageDialog
               members={members || []}
               packages={packages || []}
+              defaultOpen={openAssign}
             />
           </CardAction>
         </CardHeader>
@@ -66,6 +77,7 @@ export default async function MembershipsPage() {
             initialMemberships={memberships}
             members={members}
             packages={packages}
+            initialTab={initialTab}
           />
         </CardContent>
       </Card>

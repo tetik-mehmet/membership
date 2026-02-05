@@ -13,8 +13,13 @@ async function getMembers() {
   return JSON.parse(JSON.stringify(members));
 }
 
-export default async function MembersPage() {
+export default async function MembersPage({ searchParams }) {
   const members = await getMembers();
+  const resolved =
+    searchParams && typeof searchParams.then === "function"
+      ? await searchParams
+      : searchParams || {};
+  const openAddMember = resolved?.open === "add-member";
 
   return (
     <div className="space-y-6">
@@ -25,7 +30,7 @@ export default async function MembersPage() {
             Tüm üyeleri görüntüleyin ve yönetin
           </p>
         </div>
-        <AddMemberDialog>
+        <AddMemberDialog defaultOpen={openAddMember}>
           <button className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
             <Plus className="h-5 w-5" />
             Yeni Üye

@@ -1,15 +1,15 @@
-import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import Admin from '@/models/Admin';
-import { verifyToken, hashPassword } from '@/lib/auth';
+import { NextResponse } from "next/server";
+import connectDB from "@/lib/db";
+import Admin from "@/models/Admin";
+import { verifyToken, hashPassword } from "@/lib/auth";
 
 // GET - Admin sayısını getir
 export async function GET(request) {
   try {
-    const token = request.cookies.get('auth-token')?.value;
+    const token = request.cookies.get("auth-token")?.value;
     if (!token) {
       return NextResponse.json(
-        { success: false, error: 'Oturum bulunamadı' },
+        { success: false, error: "Oturum bulunamadı" },
         { status: 401 }
       );
     }
@@ -17,22 +17,27 @@ export async function GET(request) {
     const decoded = verifyToken(token);
     if (!decoded || !decoded.adminId) {
       return NextResponse.json(
-        { success: false, error: 'Geçersiz oturum' },
+        { success: false, error: "Geçersiz oturum" },
         { status: 401 }
       );
     }
 
     await connectDB();
-    const count = await Admin.countDocuments({ isActive: true });
+    const admins = await Admin.find({ isActive: true })
+      .select("username")
+      .sort({ username: 1 })
+      .lean();
+    const count = admins.length;
+    const usernames = admins.map((a) => a.username);
 
     return NextResponse.json(
-      { success: true, data: { count } },
+      { success: true, data: { count, usernames } },
       { status: 200 }
     );
   } catch (error) {
-    console.error('Get admin count error:', error);
+    console.error("Get admin count error:", error);
     return NextResponse.json(
-      { success: false, error: 'Bir hata oluştu' },
+      { success: false, error: "Bir hata oluştu" },
       { status: 500 }
     );
   }
@@ -41,10 +46,10 @@ export async function GET(request) {
 // POST - Yeni admin oluştur (sadece giriş yapmış adminler)
 export async function POST(request) {
   try {
-    const token = request.cookies.get('auth-token')?.value;
+    const token = request.cookies.get("auth-token")?.value;
     if (!token) {
       return NextResponse.json(
-        { success: false, error: 'Oturum bulunamadı' },
+        { success: false, error: "Oturum bulunamadı" },
         { status: 401 }
       );
     }
@@ -52,7 +57,7 @@ export async function POST(request) {
     const decoded = verifyToken(token);
     if (!decoded || !decoded.adminId) {
       return NextResponse.json(
-        { success: false, error: 'Geçersiz oturum' },
+        { success: false, error: "Geçersiz oturum" },
         { status: 401 }
       );
     }
@@ -61,14 +66,14 @@ export async function POST(request) {
 
     if (!username?.trim()) {
       return NextResponse.json(
-        { success: false, error: 'Kullanıcı adı gerekli' },
+        { success: false, error: "Kullanıcı adı gerekli" },
         { status: 400 }
       );
     }
 
     if (!password || password.length < 6) {
       return NextResponse.json(
-        { success: false, error: 'Şifre en az 6 karakter olmalıdır' },
+        { success: false, error: "Şifre en az 6 karakter olmalıdır" },
         { status: 400 }
       );
     }
@@ -80,7 +85,7 @@ export async function POST(request) {
     const existing = await Admin.findOne({ username: normalizedUsername });
     if (existing) {
       return NextResponse.json(
-        { success: false, error: 'Bu kullanıcı adı zaten kullanılıyor' },
+        { success: false, error: "Bu kullanıcı adı zaten kullanılıyor" },
         { status: 400 }
       );
     }
@@ -98,15 +103,15 @@ export async function POST(request) {
         data: {
           id: newAdmin._id.toString(),
           username: newAdmin.username,
-          message: 'Admin başarıyla oluşturuldu',
+          message: "Admin başarıyla oluşturuldu",
         },
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error('Create admin error:', error);
+    console.error("Create admin error:", error);
     return NextResponse.json(
-      { success: false, error: 'Bir hata oluştu' },
+      { success: false, error: "Bir hata oluştu" },
       { status: 500 }
     );
   }

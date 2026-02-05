@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -10,19 +10,30 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-export default function AddPackageDialog({ children }) {
+export default function AddPackageDialog({ children, defaultOpen = false }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const clearedUrlRef = useRef(false);
+  const [open, setOpen] = useState(!!defaultOpen);
+
+  useEffect(() => {
+    if (defaultOpen && open && !clearedUrlRef.current) {
+      clearedUrlRef.current = true;
+      const url = new URL(window.location.href);
+      url.searchParams.delete("open");
+      const clean = url.pathname + (url.search ? url.search : "");
+      window.history.replaceState({}, "", clean);
+    }
+  }, [defaultOpen, open]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    durationInDays: '',
-    price: '',
+    name: "",
+    durationInDays: "",
+    price: "",
   });
 
   const handleSubmit = async (e) => {
@@ -30,10 +41,10 @@ export default function AddPackageDialog({ children }) {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/packages', {
-        method: 'POST',
+      const response = await fetch("/api/packages", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           name: formData.name,
@@ -46,14 +57,18 @@ export default function AddPackageDialog({ children }) {
 
       if (data.success) {
         setOpen(false);
-        setFormData({ name: '', durationInDays: '', price: '' });
+        setFormData({ name: "", durationInDays: "", price: "" });
         router.refresh();
-        toast.success('Paket eklendi', { description: 'Yeni üyelik paketi oluşturuldu.' });
+        toast.success("Paket eklendi", {
+          description: "Yeni üyelik paketi oluşturuldu.",
+        });
       } else {
-        toast.error('Paket eklenemedi', { description: data.error || 'Lütfen bilgileri kontrol edin.' });
+        toast.error("Paket eklenemedi", {
+          description: data.error || "Lütfen bilgileri kontrol edin.",
+        });
       }
     } catch (error) {
-      toast.error('Bir hata oluştu', { description: 'Lütfen tekrar deneyin.' });
+      toast.error("Bir hata oluştu", { description: "Lütfen tekrar deneyin." });
     } finally {
       setLoading(false);
     }
@@ -61,9 +76,7 @@ export default function AddPackageDialog({ children }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Yeni Paket Ekle</DialogTitle>
@@ -78,7 +91,9 @@ export default function AddPackageDialog({ children }) {
               id="name"
               placeholder="Örn: Aylık, 5 Aylık, Yıllık"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               required
               disabled={loading}
             />
@@ -91,7 +106,9 @@ export default function AddPackageDialog({ children }) {
               min="1"
               placeholder="30"
               value={formData.durationInDays}
-              onChange={(e) => setFormData({ ...formData, durationInDays: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, durationInDays: e.target.value })
+              }
               required
               disabled={loading}
             />
@@ -105,7 +122,9 @@ export default function AddPackageDialog({ children }) {
               step="0.01"
               placeholder="500"
               value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, price: e.target.value })
+              }
               required
               disabled={loading}
             />
@@ -120,7 +139,7 @@ export default function AddPackageDialog({ children }) {
               İptal
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Ekleniyor...' : 'Ekle'}
+              {loading ? "Ekleniyor..." : "Ekle"}
             </Button>
           </div>
         </form>

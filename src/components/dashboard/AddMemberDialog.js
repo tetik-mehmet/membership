@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -15,9 +15,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default function AddMemberDialog({ children }) {
+export default function AddMemberDialog({ children, defaultOpen = false }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const clearedUrlRef = useRef(false);
+  const [open, setOpen] = useState(!!defaultOpen);
+
+  useEffect(() => {
+    if (defaultOpen && open && !clearedUrlRef.current) {
+      clearedUrlRef.current = true;
+      const url = new URL(window.location.href);
+      url.searchParams.delete("open");
+      const clean = url.pathname + (url.search ? url.search : "");
+      window.history.replaceState({}, "", clean);
+    }
+  }, [defaultOpen, open]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
