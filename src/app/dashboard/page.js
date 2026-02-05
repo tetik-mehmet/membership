@@ -295,28 +295,28 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           <Link
             href="/dashboard/members?open=add-member"
-            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm font-medium hover:bg-muted/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-[#e8e4c8] bg-[#FFFBDE] text-black text-sm font-medium hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <UserPlus className="h-5 w-5 shrink-0" />
             Yeni üye
           </Link>
           <Link
             href="/dashboard/packages?open=add-package"
-            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm font-medium hover:bg-muted/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-[#6bb8b0] bg-[#90D1CA] text-foreground text-sm font-medium hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Package className="h-5 w-5 shrink-0" />
             Yeni paket
           </Link>
           <Link
             href="/dashboard/expenses?open=add-expense"
-            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm font-medium hover:bg-muted/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-[#0e7a73] bg-[#129990] text-white text-sm font-medium hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Receipt className="h-5 w-5 shrink-0" />
             Harcama ekle
           </Link>
           <Link
             href="/dashboard/memberships?open=assign"
-            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm font-medium hover:bg-muted/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-[#055552] bg-[#096B68] text-white text-sm font-medium hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <CreditCard className="h-5 w-5 shrink-0" />
             Üyelik ata
