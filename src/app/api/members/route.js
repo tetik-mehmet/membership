@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Member from "@/models/Member";
+import AdminActivityLog from "@/models/AdminActivityLog";
 import { verifyToken } from "@/lib/auth";
 
 // GET - List all members with optional search
@@ -49,7 +50,9 @@ export async function POST(request) {
   try {
     // Verify authentication
     const token = request.cookies.get("auth-token")?.value;
-    if (!token || !verifyToken(token)) {
+    const decoded = token ? verifyToken(token) : null;
+
+    if (!token || !decoded) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
@@ -76,6 +79,23 @@ export async function POST(request) {
       phone: phone?.trim() || "",
       note: typeof note === "string" ? note.trim().slice(0, 1000) : "",
     });
+
+    // Üye ekleme işlemini admin aktivite loglarına kaydet
+    try {
+      if (decoded?.adminId && decoded?.username) {
+        await AdminActivityLog.create({
+          adminId: decoded.adminId,
+          username: decoded.username,
+          targetMemberId: member._id,
+          targetMemberName: `${member.firstName} ${member.lastName}`.trim(),
+          action: "member_created",
+          timestamp: new Date(),
+        });
+      }
+    } catch (logError) {
+      console.error("Member create log error:", logError);
+      // Log hatası, üye oluşturma işlemini engellemesin
+    }
 
     return NextResponse.json({ success: true, data: member }, { status: 201 });
   } catch (error) {

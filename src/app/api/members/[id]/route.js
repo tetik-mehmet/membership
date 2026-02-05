@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Member from "@/models/Member";
 import MemberMembership from "@/models/MemberMembership";
+import AdminActivityLog from "@/models/AdminActivityLog";
 import { verifyToken } from "@/lib/auth";
 
 // PUT - Update member
@@ -87,7 +88,9 @@ export async function DELETE(request, { params }) {
   try {
     // Verify authentication
     const token = request.cookies.get("auth-token")?.value;
-    if (!token || !verifyToken(token)) {
+    const decoded = token ? verifyToken(token) : null;
+
+    if (!token || !decoded) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
@@ -108,6 +111,23 @@ export async function DELETE(request, { params }) {
         { success: false, error: "Member not found" },
         { status: 404 }
       );
+    }
+
+    // Üye silme işlemini admin aktivite loglarına kaydet
+    try {
+      if (decoded?.adminId && decoded?.username) {
+        await AdminActivityLog.create({
+          adminId: decoded.adminId,
+          username: decoded.username,
+          targetMemberId: member._id,
+          targetMemberName: `${member.firstName} ${member.lastName}`.trim(),
+          action: "member_deleted",
+          timestamp: new Date(),
+        });
+      }
+    } catch (logError) {
+      console.error("Member delete log error:", logError);
+      // Log hatası, silme işlemini engellemesin
     }
 
     return NextResponse.json(

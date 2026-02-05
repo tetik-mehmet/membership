@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
+import Member from "@/models/Member";
 import MemberMembership from "@/models/MemberMembership";
 import MembershipPackage from "@/models/MembershipPackage";
 import EarningsRecord from "@/models/EarningsRecord";
+import AdminActivityLog from "@/models/AdminActivityLog";
 import { verifyToken } from "@/lib/auth";
 import { addDays } from "date-fns";
 
@@ -51,7 +53,9 @@ export async function POST(request) {
   try {
     // Verify authentication
     const token = request.cookies.get("auth-token")?.value;
-    if (!token || !verifyToken(token)) {
+    const decoded = token ? verifyToken(token) : null;
+
+    if (!token || !decoded) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
@@ -120,6 +124,36 @@ export async function POST(request) {
       amount: packageData.price,
       date: new Date(),
     });
+
+    // Hedef üye bilgisini bul
+    let member = null;
+    try {
+      member = await Member.findById(memberId).select("firstName lastName");
+    } catch {
+      member = null;
+    }
+
+    // Üyelik ekleme işlemini admin aktivite loglarına kaydet
+    try {
+      if (decoded?.adminId && decoded?.username) {
+        await AdminActivityLog.create({
+          adminId: decoded.adminId,
+          username: decoded.username,
+          targetMemberId: member?._id || memberId,
+          targetMemberName: member
+            ? `${member.firstName} ${member.lastName}`.trim()
+            : undefined,
+          targetMembershipId: membership._id,
+          targetPackageName: packageData.name,
+          targetPackageDurationInDays: packageData.durationInDays,
+          action: "membership_created",
+          timestamp: new Date(),
+        });
+      }
+    } catch (logError) {
+      console.error("Membership create log error:", logError);
+      // Log hatası, üyelik oluşturmayı engellemesin
+    }
 
     // Populate references before returning
     await membership.populate("memberId", "firstName lastName email");

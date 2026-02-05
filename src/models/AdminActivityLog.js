@@ -10,9 +10,39 @@ const AdminActivityLogSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  // İşlem yapılan hedef üye/üyelik bilgileri
+  targetMemberId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Member",
+  },
+  targetMemberName: {
+    type: String,
+  },
+  targetMembershipId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "MemberMembership",
+  },
+  targetPackageName: {
+    type: String,
+  },
+  targetPackageDurationInDays: {
+    type: Number,
+  },
+  targetNote: {
+    type: String,
+  },
   action: {
     type: String,
-    enum: ["login", "logout"],
+    enum: [
+      "login",
+      "logout",
+      "member_created",
+      "member_deleted",
+      "membership_created",
+      "membership_renewed",
+      "membership_deleted",
+      "member_note_updated",
+    ],
     required: true,
   },
   timestamp: {

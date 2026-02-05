@@ -1,19 +1,23 @@
-import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import MemberMembership from '@/models/MemberMembership';
-import MembershipPackage from '@/models/MembershipPackage';
-import EarningsRecord from '@/models/EarningsRecord';
-import { verifyToken } from '@/lib/auth';
-import { addDays } from 'date-fns';
+import { NextResponse } from "next/server";
+import connectDB from "@/lib/db";
+import Member from "@/models/Member";
+import MemberMembership from "@/models/MemberMembership";
+import MembershipPackage from "@/models/MembershipPackage";
+import EarningsRecord from "@/models/EarningsRecord";
+import AdminActivityLog from "@/models/AdminActivityLog";
+import { verifyToken } from "@/lib/auth";
+import { addDays } from "date-fns";
 
 // POST - Renew membership
 export async function POST(request) {
   try {
     // Verify authentication
-    const token = request.cookies.get('auth-token')?.value;
-    if (!token || !verifyToken(token)) {
+    const token = request.cookies.get("auth-token")?.value;
+    const decoded = token ? verifyToken(token) : null;
+
+    if (!token || !decoded) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: "Unauthorized" },
         { status: 401 }
       );
     }
@@ -23,7 +27,10 @@ export async function POST(request) {
     // Validate input
     if (!membershipId || !packageId || !startDate) {
       return NextResponse.json(
-        { success: false, error: 'Membership ID, package ID, and start date are required' },
+        {
+          success: false,
+          error: "Membership ID, package ID, and start date are required",
+        },
         { status: 400 }
       );
     }
@@ -34,7 +41,7 @@ export async function POST(request) {
     const oldMembership = await MemberMembership.findById(membershipId);
     if (!oldMembership) {
       return NextResponse.json(
-        { success: false, error: 'Membership not found' },
+        { success: false, error: "Membership not found" },
         { status: 404 }
       );
     }
@@ -42,13 +49,16 @@ export async function POST(request) {
     // Check if member has any other active membership
     const activeMembership = await MemberMembership.findOne({
       memberId: oldMembership.memberId,
-      status: 'active',
+      status: "active",
       _id: { $ne: membershipId },
     });
 
     if (activeMembership) {
       return NextResponse.json(
-        { success: false, error: 'Member already has another active membership' },
+        {
+          success: false,
+          error: "Member already has another active membership",
+        },
         { status: 400 }
       );
     }
@@ -57,20 +67,20 @@ export async function POST(request) {
     const packageData = await MembershipPackage.findById(packageId);
     if (!packageData) {
       return NextResponse.json(
-        { success: false, error: 'Package not found' },
+        { success: false, error: "Package not found" },
         { status: 404 }
       );
     }
 
     if (!packageData.isActive) {
       return NextResponse.json(
-        { success: false, error: 'Package is not active' },
+        { success: false, error: "Package is not active" },
         { status: 400 }
       );
     }
 
     // Mark old membership as expired/cancelled
-    oldMembership.status = 'expired';
+    oldMembership.status = "expired";
     await oldMembership.save();
 
     // Calculate end date for new membership
@@ -83,7 +93,7 @@ export async function POST(request) {
       packageId,
       startDate: start,
       endDate,
-      status: 'active',
+      status: "active",
     });
 
     // Kazanç kaydı: üye silinse bile bu tutar düşmez
@@ -92,18 +102,50 @@ export async function POST(request) {
       date: new Date(),
     });
 
+    // Hedef üye bilgisini bul
+    let member = null;
+    try {
+      member = await Member.findById(oldMembership.memberId).select(
+        "firstName lastName"
+      );
+    } catch {
+      member = null;
+    }
+
+    // Üyelik yenileme işlemini admin aktivite loglarına kaydet
+    try {
+      if (decoded?.adminId && decoded?.username) {
+        await AdminActivityLog.create({
+          adminId: decoded.adminId,
+          username: decoded.username,
+          targetMemberId: member?._id || oldMembership.memberId,
+          targetMemberName: member
+            ? `${member.firstName} ${member.lastName}`.trim()
+            : undefined,
+          targetMembershipId: newMembership._id,
+          targetPackageName: packageData.name,
+          targetPackageDurationInDays: packageData.durationInDays,
+          action: "membership_renewed",
+          timestamp: new Date(),
+        });
+      }
+    } catch (logError) {
+      console.error("Membership renew log error:", logError);
+      // Log hatası, yenilemeyi engellemesin
+    }
+
     // Populate references before returning
-    await newMembership.populate('memberId', 'firstName lastName email');
-    await newMembership.populate('packageId', 'name durationInDays price');
+    await newMembership.populate("memberId", "firstName lastName email");
+    await newMembership.populate("packageId", "name durationInDays price");
 
     return NextResponse.json(
       { success: true, data: newMembership },
       { status: 201 }
     );
   } catch (error) {
-    console.error('Renew membership error:', error);
+    console.error("Renew membership error:", error);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: false, error: "Internal server error" },
       { status: 500 }
     );
   }
