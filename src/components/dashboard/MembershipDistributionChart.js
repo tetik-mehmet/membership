@@ -18,7 +18,11 @@ const CHART_COLORS = [
   "#ec4899",
 ];
 
-function getChartColor(index) {
+const PURPLE_6_AYLIK = "#a855f7"; // mor (purple-500)
+
+function getChartColor(index, name = "") {
+  const n = (name || "").toLowerCase();
+  if (n.includes("6 aylık") || n.includes("6 aylik")) return PURPLE_6_AYLIK;
   return CHART_COLORS[index % CHART_COLORS.length];
 }
 
@@ -34,7 +38,7 @@ export default function MembershipDistributionChart({ data }) {
   const total = data.reduce((sum, d) => sum + d.value, 0);
   const chartData = data.map((d, i) => ({
     ...d,
-    color: getChartColor(i),
+    color: getChartColor(i, d.name),
   }));
 
   const renderCustomLabel = ({

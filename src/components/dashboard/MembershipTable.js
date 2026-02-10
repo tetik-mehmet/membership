@@ -239,7 +239,14 @@ export default function MembershipTable({
     "bg-orange-100 dark:bg-orange-950/60 border-orange-200/60 dark:border-orange-800/50",
     "bg-teal-100 dark:bg-teal-950/60 border-teal-200/60 dark:border-teal-800/50",
   ];
-  const getGroupColor = (index) => groupColors[index % groupColors.length];
+  const sixMonthPurple =
+    "bg-purple-100 dark:bg-purple-950/60 border-purple-200/60 dark:border-purple-800/50";
+  const getGroupColor = (group, index) => {
+    const name = (group?.name || "").toLowerCase();
+    if (name.includes("6 aylık") || name.includes("6 aylik"))
+      return sixMonthPurple;
+    return groupColors[index % groupColors.length];
+  };
 
   const handleClosestMemberClick = () => {
     if (closestToTodayMemberships.length === 0) return;
@@ -369,6 +376,7 @@ export default function MembershipTable({
               <div key={group.id} className="border rounded-lg overflow-hidden">
                 <div
                   className={`px-4 py-3 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 ${getGroupColor(
+                    group,
                     groupIndex
                   )}`}
                 >
