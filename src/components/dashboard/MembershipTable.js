@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Ban, Pencil, Clock, Package, Search, UserCheck, X } from "lucide-react";
+import { Ban, Pencil, Clock, Package, Search, UserCheck, X, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +50,17 @@ export default function MembershipTable({
   const highlightedRowRef = useRef(null);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+  // Paket gruplarının açık/kapalı durumu (varsayılan: kapalı, sayfa yer kaplamasın)
+  const [openGroups, setOpenGroups] = useState(() => new Set());
+
+  const toggleGroup = (groupId) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  };
 
   // Vurgulu satıra scroll (ilk vurgulanan)
   useEffect(() => {
@@ -283,6 +294,18 @@ export default function MembershipTable({
       setActiveTab(effective === "expired" ? "expired" : "active");
       setShowExpiringSoon(false);
       setHighlightedMembershipIds(ids);
+      // Üyelerin bulunduğu paket gruplarını aç ki kapalı kartlar olsa bile görünsün
+      const groupIdsToOpen = [
+        ...new Set(
+          closestToTodayMemberships.map(
+            (m) =>
+              m.packageId?._id?.toString() ||
+              m.packageId?.toString() ||
+              "_unknown"
+          )
+        ),
+      ];
+      setOpenGroups((prev) => new Set([...prev, ...groupIdsToOpen]));
     }
   };
 
@@ -448,15 +471,22 @@ export default function MembershipTable({
           </div>
         ) : (
           <div className="space-y-6">
-            {groupedByPackage.map((group, groupIndex) => (
+            {groupedByPackage.map((group, groupIndex) => {
+              const isOpen = openGroups.has(group.id);
+              return (
               <div key={group.id} className="border rounded-lg overflow-hidden">
-                <div
-                  className={`px-4 py-3 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 ${getGroupColor(
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.id)}
+                  className={`w-full px-4 py-3 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-left transition-colors hover:opacity-90 ${getGroupColor(
                     group,
                     groupIndex
                   )}`}
+                  aria-expanded={isOpen}
+                  aria-controls={`group-content-${group.id}`}
+                  id={`group-header-${group.id}`}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Package className="h-5 w-5 text-primary shrink-0" />
                     <h3 className="font-semibold text-foreground">
                       {group.name}
@@ -470,11 +500,25 @@ export default function MembershipTable({
                       </span>
                     )}
                   </div>
-                  <Badge variant="secondary" className="w-fit">
-                    {group.memberships.length} üyelik
-                  </Badge>
-                </div>
-                <div className="overflow-x-auto">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="w-fit">
+                      {group.memberships.length} üyelik
+                    </Badge>
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border bg-background/50" aria-hidden>
+                      {isOpen ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </span>
+                  </div>
+                </button>
+                <div
+                  id={`group-content-${group.id}`}
+                  role="region"
+                  aria-labelledby={`group-header-${group.id}`}
+                  className={isOpen ? "overflow-x-auto" : "hidden"}
+                >
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-amber-50/80 dark:bg-amber-950/30 border-border backdrop-blur-sm">
@@ -641,7 +685,8 @@ export default function MembershipTable({
                   </Table>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
       </TabsContent>

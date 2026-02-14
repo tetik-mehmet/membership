@@ -11,6 +11,12 @@ import {
   Receipt,
   PiggyBank,
   UserPlus,
+  CloudSun,
+  Cloud,
+  CloudRain,
+  Sun,
+  CloudSnow,
+  CloudFog,
 } from "lucide-react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -39,6 +45,42 @@ async function getUsername() {
   const token = cookieStore.get("auth-token")?.value;
   const decoded = token ? verifyToken(token) : null;
   return decoded?.username || "admin";
+}
+
+function getWeatherIcon(weatherCode) {
+  if (weatherCode === 0) return Sun;
+  if (weatherCode >= 1 && weatherCode <= 3) return CloudSun;
+  if (weatherCode >= 45 && weatherCode <= 48) return CloudFog;
+  if (weatherCode >= 51 && weatherCode <= 67) return CloudRain;
+  if (weatherCode >= 71 && weatherCode <= 77) return CloudSnow;
+  if (weatherCode >= 80 && weatherCode <= 99) return CloudRain;
+  return Cloud;
+}
+
+function getWeatherLabel(weatherCode) {
+  if (weatherCode === 0) return "Açık";
+  if (weatherCode >= 1 && weatherCode <= 3) return "Parçalı bulutlu";
+  if (weatherCode >= 45 && weatherCode <= 48) return "Sisli";
+  if (weatherCode >= 51 && weatherCode <= 67) return "Yağmurlu";
+  if (weatherCode >= 71 && weatherCode <= 77) return "Karlı";
+  if (weatherCode >= 80 && weatherCode <= 99) return "Sağanak";
+  return "Bulutlu";
+}
+
+async function getAnkaraWeather() {
+  try {
+    const res = await fetch(
+      "https://api.open-meteo.com/v1/forecast?latitude=39.9334&longitude=32.8597&current=temperature_2m,weather_code&timezone=Europe%2FIstanbul",
+      { next: { revalidate: 3600 } },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const temp = Math.round(data.current?.temperature_2m ?? 0);
+    const code = data.current?.weather_code ?? 0;
+    return { temp, code };
+  } catch {
+    return null;
+  }
 }
 
 function getStartOfMonth() {
@@ -142,7 +184,7 @@ async function getDashboardStats() {
   const monthlyProfit = monthlyEarnings - monthlyExpenses;
 
   const membershipDistribution = (distributionByPackageResult || []).map(
-    (d) => ({ name: d.name || "Bilinmeyen", value: d.value })
+    (d) => ({ name: d.name || "Bilinmeyen", value: d.value }),
   );
 
   return {
@@ -159,9 +201,10 @@ async function getDashboardStats() {
 }
 
 export default async function DashboardPage() {
-  const [stats, username] = await Promise.all([
+  const [stats, username, weather] = await Promise.all([
     getDashboardStats(),
     getUsername(),
+    getAnkaraWeather(),
   ]);
   const displayName =
     username.charAt(0).toUpperCase() + username.slice(1).toLowerCase();
@@ -224,10 +267,40 @@ export default async function DashboardPage() {
               priority
             />
           </div>
-          <div className="min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-              {greeting}, {displayName}
-            </h1>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+                {greeting}, {displayName}
+              </h1>
+              <a
+                href="https://antrenman-takip.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg bg-teal-500 hover:bg-teal-600 text-white transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+              >
+                Antrenman Takip Programı
+              </a>
+              {weather && (
+                <div className="flex items-center gap-6 ml-4 sm:ml-6 shrink-0">
+                  <div
+                    className="hidden sm:block w-1 h-12 shrink-0 rounded-full bg-gradient-to-b from-gray-200 via-gray-400 to-gray-600 shadow-[inset_1px_1px_0_rgba(255,255,255,0.4),2px_0_4px_rgba(0,0,0,0.15)] dark:from-gray-600 dark:via-gray-500 dark:to-gray-700 dark:shadow-[inset_1px_1px_0_rgba(255,255,255,0.1),2px_0_4px_rgba(0,0,0,0.3)]"
+                    aria-hidden
+                  />
+                  <div
+                    className="inline-flex items-center gap-3 px-5 py-3 rounded-xl bg-sky-50 dark:bg-sky-950/40 border-2 border-sky-300 dark:border-sky-700 text-sky-800 dark:text-sky-200 text-base shrink-0 shadow-sm ring-1 ring-sky-200/50 dark:ring-sky-700/50"
+                    title={`Ankara: ${weather.temp}°C, ${getWeatherLabel(weather.code)}`}
+                  >
+                    {(() => {
+                      const Icon = getWeatherIcon(weather.code);
+                      return <Icon className="h-6 w-6 shrink-0" />;
+                    })()}
+                    <span className="font-semibold whitespace-nowrap text-lg">
+                      Ankara {weather.temp}°C
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
             <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
               Üyelik yönetim sisteminize hoş geldiniz
             </p>
