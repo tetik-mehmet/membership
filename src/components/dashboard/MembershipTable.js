@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Ban, Pencil, Clock, Package, Search, UserCheck } from "lucide-react";
+import { Ban, Pencil, Clock, Package, Search, UserCheck, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { format, differenceInDays, startOfDay } from "date-fns";
 import { tr } from "date-fns/locale";
+import Image from "next/image";
 import EditMembershipDialog from "@/components/dashboard/EditMembershipDialog";
 import MemberQuickInfoDrawer from "@/components/dashboard/MemberQuickInfoDrawer";
 
@@ -47,6 +48,8 @@ export default function MembershipTable({
     () => new Set()
   );
   const highlightedRowRef = useRef(null);
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
 
   // Vurgulu satıra scroll (ilk vurgulanan)
   useEffect(() => {
@@ -57,6 +60,26 @@ export default function MembershipTable({
       });
     }
   }, [highlightedMembershipIds]);
+
+  // ESC tuşu ile modalı kapatma
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === "Escape" && photoModalOpen) {
+        setPhotoModalOpen(false);
+      }
+    };
+    
+    if (photoModalOpen) {
+      document.addEventListener("keydown", handleEscape);
+      // Scroll'u engelle
+      document.body.style.overflow = "hidden";
+    }
+    
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "unset";
+    };
+  }, [photoModalOpen]);
 
   const isExpired = (endDate) => new Date(endDate) < new Date();
   const getEffectiveStatus = (m) =>
@@ -295,6 +318,59 @@ export default function MembershipTable({
           );
         }}
       />
+      
+      {/* Fotoğraf Modal */}
+      {photoModalOpen && selectedPhoto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-8 animate-photo-modal-fade-in"
+          onClick={() => setPhotoModalOpen(false)}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-photo-modal-backdrop" />
+          
+          {/* Modal Content */}
+          <div 
+            className="relative z-10 w-full max-w-5xl animate-photo-modal-zoom-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Kapatma Butonu */}
+            <button
+              onClick={() => setPhotoModalOpen(false)}
+              className="absolute -top-10 right-0 sm:-top-11 sm:right-0 p-1.5 sm:p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50"
+              aria-label="Kapat"
+            >
+              <X className="h-4 w-4 sm:h-5 sm:w-5" />
+            </button>
+            
+            {/* Fotoğraf Container */}
+            <div className="relative bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
+              <div className="relative aspect-square w-full max-h-[70vh] sm:max-h-[80vh]">
+                <Image
+                  src={selectedPhoto.url}
+                  alt={selectedPhoto.name}
+                  fill
+                  className="object-contain"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1200px"
+                  priority
+                />
+              </div>
+              
+              {/* İsim Etiketi */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-4 sm:p-6">
+                <h3 className="text-white text-lg sm:text-xl md:text-2xl font-semibold drop-shadow-lg">
+                  {selectedPhoto.name}
+                </h3>
+              </div>
+            </div>
+            
+            {/* Kapatma ipucu */}
+            <p className="text-center text-white/60 text-xs sm:text-sm mt-3 sm:mt-4 animate-photo-modal-fade-in">
+              <span className="hidden sm:inline">ESC veya dışarıya tıklayarak kapatabilirsiniz</span>
+              <span className="sm:hidden">Kapatmak için ekrana dokunun</span>
+            </p>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1 max-w-sm w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -445,26 +521,48 @@ export default function MembershipTable({
                             }`}
                           >
                             <TableCell>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setQuickInfoMembership(membership)
-                                }
-                                className="flex min-w-0 w-full items-center gap-3 rounded-md text-left transition-colors hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                              >
-                                <span
-                                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground"
-                                  aria-hidden
+                              <div className="flex min-w-0 w-full items-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (membership.memberId?.photoUrl) {
+                                      setSelectedPhoto({
+                                        url: membership.memberId.photoUrl,
+                                        name: fullName,
+                                      });
+                                      setPhotoModalOpen(true);
+                                    }
+                                  }}
+                                  className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground overflow-hidden transition-all hover:ring-2 hover:ring-ring hover:ring-offset-2 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 group"
+                                  aria-label={membership.memberId?.photoUrl ? "Fotoğrafı büyüt" : initials}
                                 >
-                                  {initials}
-                                </span>
-                                <span
-                                  className="min-w-0 truncate font-semibold text-foreground"
+                                  {membership.memberId?.photoUrl ? (
+                                    <>
+                                      <Image
+                                        src={membership.memberId.photoUrl}
+                                        alt={fullName}
+                                        fill
+                                        className="object-cover transition-transform group-hover:scale-110"
+                                        sizes="40px"
+                                      />
+                                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors pointer-events-none" />
+                                    </>
+                                  ) : (
+                                    <span aria-hidden>{initials}</span>
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setQuickInfoMembership(membership)
+                                  }
+                                  className="min-w-0 truncate font-semibold text-foreground transition-colors hover:text-primary focus:outline-none focus:underline"
                                   title="Bilgi için tıklayın"
                                 >
                                   {fullName}
-                                </span>
-                              </button>
+                                </button>
+                              </div>
                             </TableCell>
                             <TableCell className="hidden sm:table-cell">
                               {format(

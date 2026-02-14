@@ -210,6 +210,50 @@
   animation: row-highlight-pulse 1.5s ease-in-out infinite;
 }
 
+/* Fotoğraf modalı animasyonları */
+@keyframes photo-modal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes photo-modal-zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes photo-modal-backdrop {
+  from {
+    backdrop-filter: blur(0px);
+    background-color: rgba(0, 0, 0, 0);
+  }
+  to {
+    backdrop-filter: blur(8px);
+    background-color: rgba(0, 0, 0, 0.8);
+  }
+}
+
+.animate-photo-modal-fade-in {
+  animation: photo-modal-fade-in 0.2s ease-out forwards;
+}
+
+.animate-photo-modal-zoom-in {
+  animation: photo-modal-zoom-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-photo-modal-backdrop {
+  animation: photo-modal-backdrop 0.2s ease-out forwards;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
