@@ -137,11 +137,13 @@
 @keyframes login-glow {
   0%,
   100% {
-    box-shadow: 0 0 20px rgba(212, 175, 55, 0.15),
+    box-shadow:
+      0 0 20px rgba(212, 175, 55, 0.15),
       0 0 40px rgba(212, 175, 55, 0.08);
   }
   50% {
-    box-shadow: 0 0 30px rgba(212, 175, 55, 0.25),
+    box-shadow:
+      0 0 30px rgba(212, 175, 55, 0.25),
       0 0 60px rgba(212, 175, 55, 0.12);
   }
 }

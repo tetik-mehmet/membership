@@ -1,7 +1,17 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Ban, Pencil, Clock, Package, Search, UserCheck, X, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Ban,
+  Pencil,
+  Clock,
+  Package,
+  Search,
+  UserCheck,
+  X,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +41,7 @@ export default function MembershipTable({
   const [loading, setLoading] = useState(false);
   const validTabs = ["all", "active", "expired"];
   const [activeTab, setActiveTab] = useState(
-    validTabs.includes(initialTab) ? initialTab : "all"
+    validTabs.includes(initialTab) ? initialTab : "all",
   );
 
   useEffect(() => {
@@ -45,7 +55,7 @@ export default function MembershipTable({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [quickInfoMembership, setQuickInfoMembership] = useState(null);
   const [highlightedMembershipIds, setHighlightedMembershipIds] = useState(
-    () => new Set()
+    () => new Set(),
   );
   const highlightedRowRef = useRef(null);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
@@ -79,13 +89,13 @@ export default function MembershipTable({
         setPhotoModalOpen(false);
       }
     };
-    
+
     if (photoModalOpen) {
       document.addEventListener("keydown", handleEscape);
       // Scroll'u engelle
       document.body.style.overflow = "hidden";
     }
-    
+
     return () => {
       document.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = "unset";
@@ -140,7 +150,7 @@ export default function MembershipTable({
   // Bitiş tarihi günümüze en yakın olan tüm üyelikler (aynı tarihte bitenler dahil)
   const closestToTodayMemberships = useMemo(() => {
     const valid = memberships.filter(
-      (m) => m.status === "active" || getEffectiveStatus(m) === "expired"
+      (m) => m.status === "active" || getEffectiveStatus(m) === "expired",
     );
     if (valid.length === 0) return [];
     const today = startOfDay(new Date());
@@ -213,8 +223,8 @@ export default function MembershipTable({
       if (data.success) {
         setMemberships(
           memberships.map((m) =>
-            m._id === membershipId ? { ...m, status: "cancelled" } : m
-          )
+            m._id === membershipId ? { ...m, status: "cancelled" } : m,
+          ),
         );
         toast.success("Üyelik iptal edildi", {
           description: "Üyelik başarıyla sonlandırıldı.",
@@ -238,7 +248,7 @@ export default function MembershipTable({
 
   const handleEditSuccess = (updated) => {
     setMemberships(
-      memberships.map((m) => (m._id === updated._id ? updated : m))
+      memberships.map((m) => (m._id === updated._id ? updated : m)),
     );
   };
 
@@ -301,8 +311,8 @@ export default function MembershipTable({
             (m) =>
               m.packageId?._id?.toString() ||
               m.packageId?.toString() ||
-              "_unknown"
-          )
+              "_unknown",
+          ),
         ),
       ];
       setOpenGroups((prev) => new Set([...prev, ...groupIdsToOpen]));
@@ -328,8 +338,8 @@ export default function MembershipTable({
             prev.map((m) =>
               m.memberId?._id === memberId
                 ? { ...m, memberId: { ...m.memberId, photoUrl } }
-                : m
-            )
+                : m,
+            ),
           );
           setQuickInfoMembership((prev) =>
             prev?.memberId?._id === memberId
@@ -337,11 +347,11 @@ export default function MembershipTable({
                   ...prev,
                   memberId: { ...prev.memberId, photoUrl },
                 }
-              : prev
+              : prev,
           );
         }}
       />
-      
+
       {/* Fotoğraf Modal */}
       {photoModalOpen && selectedPhoto && (
         <div
@@ -350,9 +360,9 @@ export default function MembershipTable({
         >
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-photo-modal-backdrop" />
-          
+
           {/* Modal Content */}
-          <div 
+          <div
             className="relative z-10 w-full max-w-5xl animate-photo-modal-zoom-in"
             onClick={(e) => e.stopPropagation()}
           >
@@ -364,7 +374,7 @@ export default function MembershipTable({
             >
               <X className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
-            
+
             {/* Fotoğraf Container */}
             <div className="relative bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
               <div className="relative aspect-square w-full max-h-[70vh] sm:max-h-[80vh]">
@@ -377,7 +387,7 @@ export default function MembershipTable({
                   priority
                 />
               </div>
-              
+
               {/* İsim Etiketi */}
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-4 sm:p-6">
                 <h3 className="text-white text-lg sm:text-xl md:text-2xl font-semibold drop-shadow-lg">
@@ -385,10 +395,12 @@ export default function MembershipTable({
                 </h3>
               </div>
             </div>
-            
+
             {/* Kapatma ipucu */}
             <p className="text-center text-white/60 text-xs sm:text-sm mt-3 sm:mt-4 animate-photo-modal-fade-in">
-              <span className="hidden sm:inline">ESC veya dışarıya tıklayarak kapatabilirsiniz</span>
+              <span className="hidden sm:inline">
+                ESC veya dışarıya tıklayarak kapatabilirsiniz
+              </span>
               <span className="sm:hidden">Kapatmak için ekrana dokunun</span>
             </p>
           </div>
@@ -417,7 +429,7 @@ export default function MembershipTable({
             variant={
               closestToTodayMemberships.length > 0 &&
               closestToTodayMemberships.every((m) =>
-                highlightedMembershipIds.has(m._id)
+                highlightedMembershipIds.has(m._id),
               )
                 ? "default"
                 : "outline"
@@ -428,7 +440,7 @@ export default function MembershipTable({
             title={
               closestToTodayMemberships.length > 0
                 ? closestToTodayMemberships.every((m) =>
-                    highlightedMembershipIds.has(m._id)
+                    highlightedMembershipIds.has(m._id),
                   )
                   ? "Vurguyu kapatmak için tıklayın"
                   : `${closestToTodayMemberships.length} üye (aynı bitiş tarihi)`
@@ -474,218 +486,235 @@ export default function MembershipTable({
             {groupedByPackage.map((group, groupIndex) => {
               const isOpen = openGroups.has(group.id);
               return (
-              <div key={group.id} className="border rounded-lg overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => toggleGroup(group.id)}
-                  className={`w-full px-4 py-3 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-left transition-colors hover:opacity-90 ${getGroupColor(
-                    group,
-                    groupIndex
-                  )}`}
-                  aria-expanded={isOpen}
-                  aria-controls={`group-content-${group.id}`}
-                  id={`group-header-${group.id}`}
-                >
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Package className="h-5 w-5 text-primary shrink-0" />
-                    <h3 className="font-semibold text-foreground">
-                      {group.name}
-                    </h3>
-                    {group.price != null && (
-                      <span className="text-sm text-muted-foreground">
-                        {group.price.toLocaleString("tr-TR")} ₺
-                        {group.durationInDays
-                          ? ` / ${group.durationInDays} gün`
-                          : ""}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="w-fit">
-                      {group.memberships.length} üyelik
-                    </Badge>
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border bg-background/50" aria-hidden>
-                      {isOpen ? (
-                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </span>
-                  </div>
-                </button>
                 <div
-                  id={`group-content-${group.id}`}
-                  role="region"
-                  aria-labelledby={`group-header-${group.id}`}
-                  className={isOpen ? "overflow-x-auto" : "hidden"}
+                  key={group.id}
+                  className="border rounded-lg overflow-hidden"
                 >
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-amber-50/80 dark:bg-amber-950/30 border-border backdrop-blur-sm">
-                        <TableHead>Üye</TableHead>
-                        <TableHead className="hidden sm:table-cell">
-                          Başlangıç
-                        </TableHead>
-                        <TableHead>Bitiş</TableHead>
-                        <TableHead>Durum</TableHead>
-                        <TableHead className="text-right">İşlemler</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {group.memberships.map((membership, rowIndex) => {
-                        const first =
-                          membership.memberId?.firstName?.trim() || "";
-                        const last =
-                          membership.memberId?.lastName?.trim() || "";
-                        const initials =
-                          [first.charAt(0), last.charAt(0)]
-                            .filter(Boolean)
-                            .join("")
-                            .toUpperCase() || "?";
-                        const fullName = `${first} ${last}`.trim() || "—";
-                        const isOdd = rowIndex % 2 === 1;
-                        const isHighlighted = highlightedMembershipIds.has(
-                          membership._id
-                        );
-                        const isFirstHighlighted =
-                          isHighlighted &&
-                          closestToTodayMemberships[0]?._id === membership._id;
-                        return (
-                          <TableRow
-                            key={membership._id}
-                            ref={isFirstHighlighted ? highlightedRowRef : null}
-                            className={`transition-colors duration-150 hover:bg-muted/50 ${
-                              isOdd && !isHighlighted
-                                ? "bg-muted/20 dark:bg-muted/15"
-                                : ""
-                            } ${
-                              isHighlighted
-                                ? "animate-row-highlight relative z-10"
-                                : ""
-                            }`}
-                          >
-                            <TableCell>
-                              <div className="flex min-w-0 w-full items-center gap-3">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (membership.memberId?.photoUrl) {
-                                      setSelectedPhoto({
-                                        url: membership.memberId.photoUrl,
-                                        name: fullName,
-                                      });
-                                      setPhotoModalOpen(true);
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.id)}
+                    className={`w-full px-4 py-3 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-left transition-colors hover:opacity-90 ${getGroupColor(
+                      group,
+                      groupIndex,
+                    )}`}
+                    aria-expanded={isOpen}
+                    aria-controls={`group-content-${group.id}`}
+                    id={`group-header-${group.id}`}
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Package className="h-5 w-5 text-primary shrink-0" />
+                      <h3 className="font-semibold text-foreground">
+                        {group.name}
+                      </h3>
+                      {group.price != null && (
+                        <span className="text-sm text-muted-foreground">
+                          {group.price.toLocaleString("tr-TR")} ₺
+                          {group.durationInDays
+                            ? ` / ${group.durationInDays} gün`
+                            : ""}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="w-fit">
+                        {group.memberships.length} üyelik
+                      </Badge>
+                      <span
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border bg-background/50"
+                        aria-hidden
+                      >
+                        {isOpen ? (
+                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </span>
+                    </div>
+                  </button>
+                  <div
+                    id={`group-content-${group.id}`}
+                    role="region"
+                    aria-labelledby={`group-header-${group.id}`}
+                    className={isOpen ? "overflow-x-auto" : "hidden"}
+                  >
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-amber-50/80 dark:bg-amber-950/30 border-border backdrop-blur-sm">
+                          <TableHead>Üye</TableHead>
+                          <TableHead className="hidden sm:table-cell">
+                            Başlangıç
+                          </TableHead>
+                          <TableHead>Bitiş</TableHead>
+                          <TableHead>Durum</TableHead>
+                          <TableHead className="text-right">İşlemler</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {group.memberships.map((membership, rowIndex) => {
+                          const first =
+                            membership.memberId?.firstName?.trim() || "";
+                          const last =
+                            membership.memberId?.lastName?.trim() || "";
+                          const initials =
+                            [first.charAt(0), last.charAt(0)]
+                              .filter(Boolean)
+                              .join("")
+                              .toUpperCase() || "?";
+                          const fullName = `${first} ${last}`.trim() || "—";
+                          const isOdd = rowIndex % 2 === 1;
+                          const isHighlighted = highlightedMembershipIds.has(
+                            membership._id,
+                          );
+                          const isFirstHighlighted =
+                            isHighlighted &&
+                            closestToTodayMemberships[0]?._id ===
+                              membership._id;
+                          return (
+                            <TableRow
+                              key={membership._id}
+                              ref={
+                                isFirstHighlighted ? highlightedRowRef : null
+                              }
+                              className={`transition-colors duration-150 hover:bg-muted/50 ${
+                                isOdd && !isHighlighted
+                                  ? "bg-muted/20 dark:bg-muted/15"
+                                  : ""
+                              } ${
+                                isHighlighted
+                                  ? "animate-row-highlight relative z-10"
+                                  : ""
+                              }`}
+                            >
+                              <TableCell>
+                                <div className="flex min-w-0 w-full items-center gap-3">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (membership.memberId?.photoUrl) {
+                                        setSelectedPhoto({
+                                          url: membership.memberId.photoUrl,
+                                          name: fullName,
+                                        });
+                                        setPhotoModalOpen(true);
+                                      }
+                                    }}
+                                    className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground overflow-hidden transition-all hover:ring-2 hover:ring-ring hover:ring-offset-2 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 group"
+                                    aria-label={
+                                      membership.memberId?.photoUrl
+                                        ? "Fotoğrafı büyüt"
+                                        : initials
                                     }
-                                  }}
-                                  className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground overflow-hidden transition-all hover:ring-2 hover:ring-ring hover:ring-offset-2 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 group"
-                                  aria-label={membership.memberId?.photoUrl ? "Fotoğrafı büyüt" : initials}
-                                >
-                                  {membership.memberId?.photoUrl ? (
-                                    <>
-                                      <Image
-                                        src={membership.memberId.photoUrl}
-                                        alt={fullName}
-                                        fill
-                                        className="object-cover transition-transform group-hover:scale-110"
-                                        sizes="40px"
-                                      />
-                                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors pointer-events-none" />
-                                    </>
-                                  ) : (
-                                    <span aria-hidden>{initials}</span>
-                                  )}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setQuickInfoMembership(membership)
-                                  }
-                                  className="min-w-0 truncate font-semibold text-foreground transition-colors hover:text-primary focus:outline-none focus:underline"
-                                  title="Bilgi için tıklayın"
-                                >
-                                  {fullName}
-                                </button>
-                              </div>
-                            </TableCell>
-                            <TableCell className="hidden sm:table-cell">
-                              {format(
-                                new Date(membership.startDate),
-                                "dd MMM yyyy",
-                                { locale: tr }
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span>
-                                  {format(
-                                    new Date(membership.endDate),
-                                    "dd MMM yyyy",
-                                    { locale: tr }
-                                  )}
-                                </span>
-                                {isExpiringSoon(membership) && (
-                                  <span
-                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200/60 dark:border-amber-700/50 animate-membership-blink-soft"
-                                    title={`${getDaysRemaining(
-                                      membership.endDate
-                                    )} gün kaldı`}
                                   >
-                                    <Clock className="h-3.5 w-3.5 shrink-0" />
-                                    {getDaysRemaining(membership.endDate) === 0
-                                      ? "Bugün bitiyor"
-                                      : getDaysRemaining(membership.endDate) ===
-                                        1
-                                      ? "1 gün kaldı"
-                                      : `${getDaysRemaining(
-                                          membership.endDate
-                                        )} gün kaldı`}
-                                  </span>
+                                    {membership.memberId?.photoUrl ? (
+                                      <>
+                                        <Image
+                                          src={membership.memberId.photoUrl}
+                                          alt={fullName}
+                                          fill
+                                          className="object-cover transition-transform group-hover:scale-110"
+                                          sizes="40px"
+                                        />
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors pointer-events-none" />
+                                      </>
+                                    ) : (
+                                      <span aria-hidden>{initials}</span>
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setQuickInfoMembership(membership)
+                                    }
+                                    className="min-w-0 truncate font-semibold text-foreground transition-colors hover:text-primary focus:outline-none focus:underline"
+                                    title="Bilgi için tıklayın"
+                                  >
+                                    {fullName}
+                                  </button>
+                                </div>
+                              </TableCell>
+                              <TableCell className="hidden sm:table-cell">
+                                {format(
+                                  new Date(membership.startDate),
+                                  "dd MMM yyyy",
+                                  { locale: tr },
                                 )}
-                                {membership.status === "active" &&
-                                  isExpired(membership.endDate) && (
-                                    <span className="text-xs text-red-600 dark:text-red-400 font-medium">
-                                      Süre doldu
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span>
+                                    {format(
+                                      new Date(membership.endDate),
+                                      "dd MMM yyyy",
+                                      { locale: tr },
+                                    )}
+                                  </span>
+                                  {isExpiringSoon(membership) && (
+                                    <span
+                                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200/60 dark:border-amber-700/50 animate-membership-blink-soft"
+                                      title={`${getDaysRemaining(
+                                        membership.endDate,
+                                      )} gün kaldı`}
+                                    >
+                                      <Clock className="h-3.5 w-3.5 shrink-0" />
+                                      {getDaysRemaining(membership.endDate) ===
+                                      0
+                                        ? "Bugün bitiyor"
+                                        : getDaysRemaining(
+                                              membership.endDate,
+                                            ) === 1
+                                          ? "1 gün kaldı"
+                                          : `${getDaysRemaining(
+                                              membership.endDate,
+                                            )} gün kaldı`}
                                     </span>
                                   )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {getStatusBadge(getEffectiveStatus(membership))}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleEditClick(membership)}
-                                  disabled={loading}
-                                  title="Düzenle"
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                {getEffectiveStatus(membership) ===
-                                  "active" && (
+                                  {membership.status === "active" &&
+                                    isExpired(membership.endDate) && (
+                                      <span className="text-xs text-red-600 dark:text-red-400 font-medium">
+                                        Süre doldu
+                                      </span>
+                                    )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {getStatusBadge(getEffectiveStatus(membership))}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-2">
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => handleCancel(membership._id)}
+                                    onClick={() => handleEditClick(membership)}
                                     disabled={loading}
-                                    title="İptal Et"
+                                    title="Düzenle"
                                   >
-                                    <Ban className="h-4 w-4" />
+                                    <Pencil className="h-4 w-4" />
                                   </Button>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                                  {getEffectiveStatus(membership) ===
+                                    "active" && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleCancel(membership._id)
+                                      }
+                                      disabled={loading}
+                                      title="İptal Et"
+                                    >
+                                      <Ban className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
-              </div>
-            );
+              );
             })}
           </div>
         )}
