@@ -9,7 +9,41 @@ export const dynamic = "force-dynamic";
 
 async function getMembers() {
   await connectDB();
-  const members = await Member.find().sort({ createdAt: -1 }).lean();
+  const members = await Member.aggregate([
+    { $sort: { createdAt: -1 } },
+    {
+      $lookup: {
+        from: "membermemberships",
+        let: { mid: "$_id" },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$memberId", "$$mid"] } } },
+          { $sort: { startDate: -1 } },
+          { $limit: 1 },
+          {
+            $lookup: {
+              from: "membershippackages",
+              localField: "packageId",
+              foreignField: "_id",
+              as: "pkg",
+            },
+          },
+          {
+            $unwind: { path: "$pkg", preserveNullAndEmptyArrays: true },
+          },
+          { $project: { durationInDays: "$pkg.durationInDays" } },
+        ],
+        as: "latestMembership",
+      },
+    },
+    {
+      $addFields: {
+        membershipDurationDays: {
+          $arrayElemAt: ["$latestMembership.durationInDays", 0],
+        },
+      },
+    },
+    { $project: { latestMembership: 0 } },
+  ]);
   return JSON.parse(JSON.stringify(members));
 }
 

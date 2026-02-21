@@ -35,6 +35,27 @@ import EditMemberDialog from "@/components/dashboard/EditMemberDialog";
 
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
 
+function formatMembershipDuration(days) {
+  if (!days || typeof days !== "number") return null;
+  if (days >= 30) {
+    const months = Math.round(days / 30);
+    return months === 1 ? "1 aylık" : `${months} aylık`;
+  }
+  return `${days} günlük`;
+}
+
+function getDurationBadgeClasses(days) {
+  if (!days || typeof days !== "number") return "bg-slate-100 text-slate-700 dark:bg-slate-800/50 dark:text-slate-300 border-slate-200 dark:border-slate-600";
+  const months = Math.round(days / 30);
+  if (months === 1)
+    return "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 border-green-200/60 dark:border-green-700/50";
+  if (months === 3)
+    return "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 border-orange-200/60 dark:border-orange-700/50";
+  if (months === 6)
+    return "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200/60 dark:border-blue-700/50";
+  return "bg-slate-100 text-slate-700 dark:bg-slate-800/50 dark:text-slate-300 border-slate-200 dark:border-slate-600";
+}
+
 export default function MemberTable({ initialMembers }) {
   const [members, setMembers] = useState(initialMembers);
   const [search, setSearch] = useState("");
@@ -568,9 +589,18 @@ export default function MemberTable({ initialMembers }) {
                                       <span aria-hidden>{initials}</span>
                                     )}
                                   </button>
-                                  <span className="min-w-0 truncate font-semibold text-foreground">
-                                    {fullName}
-                                  </span>
+                                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 min-w-0">
+                                    <span className="min-w-0 truncate font-semibold text-foreground">
+                                      {fullName}
+                                    </span>
+                                    {formatMembershipDuration(
+                                      member.membershipDurationDays,
+                                    ) && (
+                                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border whitespace-nowrap shrink-0 ${getDurationBadgeClasses(member.membershipDurationDays)}`}>
+                                        {formatMembershipDuration(member.membershipDurationDays)}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </TableCell>
                               <TableCell>
