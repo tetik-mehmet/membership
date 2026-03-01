@@ -23,6 +23,7 @@ import { tr } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import MembershipDistributionChart from "@/components/dashboard/MembershipDistributionChart";
 import DashboardLottie from "@/components/dashboard/DashboardLottie";
+import AlertLottie from "@/components/dashboard/AlertLottie";
 import connectDB from "@/lib/db";
 import Member from "@/models/Member";
 import MembershipPackage from "@/models/MembershipPackage";
@@ -344,20 +345,35 @@ export default async function DashboardPage() {
 
       {stats.expiredMemberships > 0 && (
         <div
-          className="flex flex-wrap items-center gap-3 p-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200"
           role="alert"
+          className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 sm:p-5 rounded-xl bg-white dark:bg-zinc-900/80 border border-amber-200/80 dark:border-amber-800/60 shadow-sm ring-1 ring-amber-500/10 dark:ring-amber-500/20 overflow-hidden"
         >
-          <AlertCircle className="h-5 w-5 shrink-0" />
-          <p className="text-sm font-medium min-w-0">
-            {stats.expiredMemberships} üyeliğin süresi doldu. Yenilemek için
-            üyelikler sayfasına gidin.
-          </p>
-          <Link
-            href="/dashboard/memberships"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold underline underline-offset-2 hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-          >
-            Üyelikler
-          </Link>
+          {/* Turuncu gradient yanıp sönen arka plan */}
+          <div
+            className="absolute inset-0 rounded-xl bg-gradient-to-r from-amber-300/40 via-orange-400/50 to-amber-400/40 dark:from-amber-500/25 dark:via-orange-500/35 dark:to-amber-600/25 animate-alert-gradient-pulse pointer-events-none"
+            aria-hidden
+          />
+          {/* Sol accent çizgisi */}
+          <div className="absolute left-0 top-0 bottom-0 w-1 sm:w-1.5 bg-gradient-to-b from-amber-400 to-amber-600 dark:from-amber-500 dark:to-amber-700 z-10" aria-hidden />
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:flex-1 gap-3 sm:gap-4 pl-4 sm:pl-5 min-w-0">
+            <div className="space-y-0.5 min-w-0">
+              <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                Süresi dolan üyelikler
+              </h3>
+              <p className="text-sm text-amber-800/90 dark:text-amber-200/80">
+                {stats.expiredMemberships} üyeliğin süresi doldu. Yenilemek için üyelikler sayfasına gidin.
+              </p>
+            </div>
+            <Link
+              href="/dashboard/memberships?tab=expired&focus=expired"
+              className="inline-flex items-center justify-center self-start sm:self-center px-4 py-2.5 text-sm font-medium rounded-lg bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500 text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900 shadow-sm"
+            >
+              Üyelikler
+            </Link>
+          </div>
+          <div className="relative z-10 flex items-center justify-center shrink-0 pl-4 sm:pl-0">
+            <AlertLottie className="w-20 h-20 sm:w-24 sm:h-24" />
+          </div>
         </div>
       )}
 

@@ -36,6 +36,7 @@ export default function MembershipTable({
   members,
   packages,
   initialTab = "all",
+  focusExpired = false,
 }) {
   const [memberships, setMemberships] = useState(initialMemberships);
   const [loading, setLoading] = useState(false);
@@ -49,6 +50,31 @@ export default function MembershipTable({
       setActiveTab(initialTab);
     }
   }, [initialTab]);
+
+  // Dashboard'dan "süresi dolan" uyarısıyla gelindiğinde: expired sekmesini aç, ilgili paket gruplarını aç ve süresi dolan satırları vurgula
+  useEffect(() => {
+    if (!focusExpired || activeTab !== "expired") return;
+    if (didFocusExpiredRef.current) return;
+    const expired = memberships.filter(
+      (m) =>
+        m.status === "expired" ||
+        (m.status === "active" && new Date(m.endDate) < new Date()),
+    );
+    if (expired.length === 0) return;
+    didFocusExpiredRef.current = true;
+    const groupIds = new Set(
+      expired.map(
+        (m) =>
+          m.packageId?._id?.toString() ||
+          m.packageId?.toString() ||
+          "_unknown",
+      ),
+    );
+    const ids = new Set(expired.map((m) => m._id));
+    setOpenGroups((prev) => new Set([...prev, ...groupIds]));
+    setHighlightedMembershipIds(ids);
+  }, [focusExpired, activeTab, memberships]);
+
   const [search, setSearch] = useState("");
   const [showExpiringSoon, setShowExpiringSoon] = useState(false);
   const [editMembership, setEditMembership] = useState(null);
@@ -62,6 +88,7 @@ export default function MembershipTable({
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   // Paket gruplarının açık/kapalı durumu (varsayılan: kapalı, sayfa yer kaplamasın)
   const [openGroups, setOpenGroups] = useState(() => new Set());
+  const didFocusExpiredRef = useRef(false);
 
   const toggleGroup = (groupId) => {
     setOpenGroups((prev) => {
@@ -147,23 +174,25 @@ export default function MembershipTable({
     return matchesTab && matchesSearch && matchesExpiringSoon;
   });
 
-  // Bitiş tarihi günümüze en yakın olan tüm üyelikler (aynı tarihte bitenler dahil)
+  // Bitiş tarihine en yakın olan sadece aktif (süresi dolmamış) üyelikler
   const closestToTodayMemberships = useMemo(() => {
-    const valid = memberships.filter(
-      (m) => m.status === "active" || getEffectiveStatus(m) === "expired",
-    );
-    if (valid.length === 0) return [];
+    const activeOnly = memberships.filter((m) => {
+      if (m.status !== "active") return false;
+      if (isExpired(m.endDate)) return false;
+      return true;
+    });
+    if (activeOnly.length === 0) return [];
     const today = startOfDay(new Date());
-    let minDiff = Infinity;
+    let minDaysRemaining = Infinity;
     const closest = [];
-    valid.forEach((m) => {
+    activeOnly.forEach((m) => {
       const end = startOfDay(new Date(m.endDate));
-      const diff = Math.abs(differenceInDays(end, today));
-      if (diff < minDiff) {
-        minDiff = diff;
+      const daysRemaining = differenceInDays(end, today);
+      if (daysRemaining < minDaysRemaining) {
+        minDaysRemaining = daysRemaining;
         closest.length = 0;
         closest.push(m);
-      } else if (diff === minDiff) {
+      } else if (daysRemaining === minDaysRemaining) {
         closest.push(m);
       }
     });
@@ -300,8 +329,7 @@ export default function MembershipTable({
     if (allHighlighted) {
       setHighlightedMembershipIds(new Set());
     } else {
-      const effective = getEffectiveStatus(closestToTodayMemberships[0]);
-      setActiveTab(effective === "expired" ? "expired" : "active");
+      setActiveTab("active");
       setShowExpiringSoon(false);
       setHighlightedMembershipIds(ids);
       // Üyelerin bulunduğu paket gruplarını aç ki kapalı kartlar olsa bile görünsün

@@ -51,6 +51,7 @@ export default async function MembershipsPage({ searchParams }) {
   const initialTab =
     tabParam && VALID_TABS.includes(tabParam) ? tabParam : "all";
   const openAssign = resolved?.open === "assign";
+  const focusExpired = resolved?.focus === "expired";
 
   return (
     <div className="space-y-6">
@@ -78,6 +79,7 @@ export default async function MembershipsPage({ searchParams }) {
             members={members}
             packages={packages}
             initialTab={initialTab}
+            focusExpired={focusExpired}
           />
         </CardContent>
       </Card>
