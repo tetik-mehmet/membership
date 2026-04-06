@@ -92,8 +92,6 @@ export default function RegisterPage() {
               </h2>
               <p className="text-sm text-white/60 leading-relaxed">
                 Üyelik başvurunuz başarıyla alındı.
-                <br />
-                En kısa sürede sizi arayacağız.
               </p>
             </div>
           </div>
@@ -159,7 +157,7 @@ export default function RegisterPage() {
                     id="phone"
                     name="phone"
                     type="tel"
-                    placeholder="05xx xxx xx xx"
+                    placeholder="5xx xxx xx xx"
                     value={form.phone}
                     onChange={handleChange}
                     disabled={loading}
@@ -180,7 +178,7 @@ export default function RegisterPage() {
               {/* Kaydol butonu */}
               <Button
                 type="submit"
-                className="w-full h-11 font-semibold text-sm mt-2"
+                className="w-full h-11 font-semibold text-sm mt-2 bg-emerald-600 hover:bg-emerald-500 text-white border-0"
                 disabled={loading}
               >
                 {loading ? (
