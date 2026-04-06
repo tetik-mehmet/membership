@@ -14,7 +14,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
+  QrCode,
 } from "lucide-react";
+import QRCodeCard from "@/components/dashboard/QRCodeCard";
 import {
   Card,
   CardContent,
@@ -308,7 +310,7 @@ export default function SettingsPage() {
 
       {/* Sekmeler */}
       <Tabs defaultValue="account" className="w-full">
-        <TabsList className="grid w-full sm:w-auto grid-cols-2 mb-6">
+        <TabsList className="grid w-full sm:w-auto grid-cols-3 mb-6">
           <TabsTrigger value="account" className="gap-2">
             <Shield className="h-4 w-4" />
             <span className="hidden sm:inline">Hesap Ayarları</span>
@@ -318,6 +320,11 @@ export default function SettingsPage() {
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Admin Yönetimi</span>
             <span className="sm:hidden">Admin</span>
+          </TabsTrigger>
+          <TabsTrigger value="qr" className="gap-2">
+            <QrCode className="h-4 w-4" />
+            <span className="hidden sm:inline">QR Kayıt</span>
+            <span className="sm:hidden">QR</span>
           </TabsTrigger>
         </TabsList>
 
@@ -807,6 +814,11 @@ export default function SettingsPage() {
               </form>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* QR Kayıt Sekmesi */}
+        <TabsContent value="qr" className="space-y-6 mt-0">
+          <QRCodeCard />
         </TabsContent>
       </Tabs>
     </div>
